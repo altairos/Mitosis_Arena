@@ -615,8 +615,10 @@ class GameEngine {
       card.innerHTML = `
         <div class="card-icon">${opt.icon}</div>
         <div class="card-info">
-          <div class="card-title">${opt.name}</div>
-          <div class="card-tier">${isHyper ? "⚡ 究极基因超武 ⚡" : opt.tier.toUpperCase() + " (RANK " + (opt.rank + 1) + "/" + opt.maxRank + ")"}</div>
+          <div class="card-header-line">
+            <span class="card-title">${opt.name}</span>
+            <span class="card-tier">${isHyper ? "⚡超武" : opt.tier.toUpperCase() + " (" + (opt.rank + 1) + "/" + opt.maxRank + ")"}</span>
+          </div>
           ${opt.reqDesc ? `<div class="card-req">${opt.reqDesc}</div>` : ""}
           <div class="card-desc">${opt.desc}</div>
         </div>

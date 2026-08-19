@@ -1,30 +1,27 @@
-// Input Manager v3: Direct Canvas Touch + Desktop KB/Mouse
+// Input Manager v4: Responsive Touch Steering Anywhere on Screen
 
 class InputManager {
   constructor() {
     this.keys = {};
     this.mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2, down: false };
 
-    // Direct touch steering state
+    // Active touch steering
     this.touchMove = {
       active: false,
       id: null,
-      x: 0,
-      y: 0
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2
     };
 
     this.onSplitAction = null;
     this.onMergeAction = null;
     this.onPauseAction = null;
 
-    this._splitBtnIds = new Set();
-    this._mergeBtnIds = new Set();
-
     this.init();
   }
 
   init() {
-    // ===== KEYBOARD =====
+    // Keyboard
     window.addEventListener("keydown", (e) => {
       this.keys[e.code] = true;
       if (e.code === "Space") { e.preventDefault(); if (this.onSplitAction) this.onSplitAction(); }
@@ -33,7 +30,7 @@ class InputManager {
     });
     window.addEventListener("keyup", (e) => { this.keys[e.code] = false; });
 
-    // ===== DESKTOP MOUSE =====
+    // Desktop Mouse
     window.addEventListener("mousemove", (e) => { this.mouse.x = e.clientX; this.mouse.y = e.clientY; });
     window.addEventListener("mousedown", (e) => {
       if (e.button === 0) this.mouse.down = true;
@@ -42,96 +39,104 @@ class InputManager {
     window.addEventListener("mouseup", (e) => { if (e.button === 0) this.mouse.down = false; });
     window.addEventListener("contextmenu", (e) => e.preventDefault());
 
-    // ===== TOUCH: Split & Merge buttons (Left Hand) =====
+    // Setup Touch
+    this.setupTouch();
+  }
+
+  setupTouch() {
     const btnSplit = document.getElementById("btn-split");
     const btnMerge = document.getElementById("btn-merge");
+    const pointerRing = document.getElementById("touch-pointer-ring");
 
+    // Left Touch Action Buttons (Split & Merge)
     if (btnSplit) {
       const handleSplit = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        for (let t of e.changedTouches) this._splitBtnIds.add(t.identifier);
         if (this.onSplitAction) this.onSplitAction();
       };
       btnSplit.addEventListener("touchstart", handleSplit, { passive: false });
       btnSplit.addEventListener("click", handleSplit);
-      btnSplit.addEventListener("touchend", (e) => {
-        for (let t of e.changedTouches) this._splitBtnIds.delete(t.identifier);
-      }, { passive: true });
     }
 
     if (btnMerge) {
       const handleMerge = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        for (let t of e.changedTouches) this._mergeBtnIds.add(t.identifier);
         if (this.onMergeAction) this.onMergeAction();
       };
       btnMerge.addEventListener("touchstart", handleMerge, { passive: false });
       btnMerge.addEventListener("click", handleMerge);
-      btnMerge.addEventListener("touchend", (e) => {
-        for (let t of e.changedTouches) this._mergeBtnIds.delete(t.identifier);
-      }, { passive: true });
     }
 
-    // ===== TOUCH: Direct screen steering on CANVAS =====
-    const canvas = document.getElementById("gameCanvas");
-    const pointerRing = document.getElementById("touch-pointer-ring");
+    // Global touch on window: ANY touch outside buttons/modals controls player steering!
+    window.addEventListener("touchstart", (e) => {
+      // If modal is open, let user touch modal freely and DO NOT steer
+      if (document.querySelector(".modal-backdrop:not(.hidden)")) {
+        this.touchMove.active = false;
+        if (pointerRing) pointerRing.style.display = "none";
+        return;
+      }
 
-    if (canvas) {
-      canvas.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-        for (let i = 0; i < e.changedTouches.length; i++) {
-          const t = e.changedTouches[i];
-          if (this._splitBtnIds.has(t.identifier) || this._mergeBtnIds.has(t.identifier)) continue;
-          if (!this.touchMove.active) {
-            this.touchMove.active = true;
-            this.touchMove.id = t.identifier;
-            this.touchMove.x = t.clientX;
-            this.touchMove.y = t.clientY;
-            if (pointerRing) {
-              pointerRing.style.display = "block";
-              pointerRing.style.left = t.clientX + "px";
-              pointerRing.style.top = t.clientY + "px";
-            }
-          }
-        }
-      }, { passive: false });
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        const el = document.elementFromPoint(t.clientX, t.clientY);
+        // Skip touches on buttons
+        if (el && (el.closest(".touch-btn") || el.closest(".icon-btn"))) continue;
 
-      canvas.addEventListener("touchmove", (e) => {
-        e.preventDefault();
-        for (let i = 0; i < e.changedTouches.length; i++) {
-          const t = e.changedTouches[i];
-          if (t.identifier === this.touchMove.id) {
-            this.touchMove.x = t.clientX;
-            this.touchMove.y = t.clientY;
-            if (pointerRing) {
-              pointerRing.style.left = t.clientX + "px";
-              pointerRing.style.top = t.clientY + "px";
-            }
-            break;
-          }
-        }
-      }, { passive: false });
+        // Claim steering touch
+        this.touchMove.active = true;
+        this.touchMove.id = t.identifier;
+        this.touchMove.x = t.clientX;
+        this.touchMove.y = t.clientY;
 
-      const endSteer = (e) => {
-        for (let i = 0; i < e.changedTouches.length; i++) {
-          if (e.changedTouches[i].identifier === this.touchMove.id) {
-            this.touchMove.active = false;
-            this.touchMove.id = null;
-            if (pointerRing) pointerRing.style.display = "none";
-          }
+        if (pointerRing) {
+          pointerRing.style.display = "block";
+          pointerRing.style.left = t.clientX + "px";
+          pointerRing.style.top = t.clientY + "px";
         }
-      };
-      canvas.addEventListener("touchend", endSteer, { passive: true });
-      canvas.addEventListener("touchcancel", endSteer, { passive: true });
-    }
+        break;
+      }
+    }, { passive: false });
+
+    window.addEventListener("touchmove", (e) => {
+      if (!this.touchMove.active) return;
+      if (document.querySelector(".modal-backdrop:not(.hidden)")) return;
+
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.identifier === this.touchMove.id) {
+          this.touchMove.x = t.clientX;
+          this.touchMove.y = t.clientY;
+          if (pointerRing) {
+            pointerRing.style.left = t.clientX + "px";
+            pointerRing.style.top = t.clientY + "px";
+          }
+          break;
+        }
+      }
+    }, { passive: false });
+
+    const endTouch = (e) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.identifier === this.touchMove.id) {
+          this.touchMove.active = false;
+          this.touchMove.id = null;
+          if (pointerRing) pointerRing.style.display = "none";
+          break;
+        }
+      }
+    };
+
+    window.addEventListener("touchend", endTouch, { passive: true });
+    window.addEventListener("touchcancel", endTouch, { passive: true });
   }
 
   getMovementVector(playerScreenPos) {
     let vx = 0, vy = 0;
 
-    // Keyboard
+    // Keyboard (WASD)
     if (this.keys["KeyW"] || this.keys["ArrowUp"]) vy -= 1;
     if (this.keys["KeyS"] || this.keys["ArrowDown"]) vy += 1;
     if (this.keys["KeyA"] || this.keys["ArrowLeft"]) vx -= 1;
@@ -141,16 +146,32 @@ class InputManager {
       return { x: vx / len, y: vy / len };
     }
 
-    // Touch steering: move toward finger touch position
+    // Direct Touch Steering (Move toward finger position)
     if (this.touchMove.active && playerScreenPos) {
       const dx = this.touchMove.x - playerScreenPos.x;
       const dy = this.touchMove.y - playerScreenPos.y;
       const dist = Math.hypot(dx, dy);
-      if (dist > 15) {
-        const factor = Math.min(1.0, (dist - 15) / 55);
-        return { x: (dx / dist) * factor, y: (dy / dist) * factor };
+
+      // Deadzone of 10px, full speed reached by 35px!
+      if (dist > 10) {
+        const factor = Math.min(1.0, (dist - 10) / 30);
+        return {
+          x: (dx / dist) * factor,
+          y: (dy / dist) * factor
+        };
       }
       return { x: 0, y: 0 };
+    }
+
+    // Desktop Mouse Drag (Optional)
+    if (this.mouse.down && playerScreenPos) {
+      const dx = this.mouse.x - playerScreenPos.x;
+      const dy = this.mouse.y - playerScreenPos.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 15) {
+        const factor = Math.min(1.0, (dist - 15) / 50);
+        return { x: (dx / dist) * factor, y: (dy / dist) * factor };
+      }
     }
 
     return { x: 0, y: 0 };

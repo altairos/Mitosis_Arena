@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>细胞裂变 (Mitosis Arena) - 极简肉鸽微观动作游戏</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -24,7 +24,7 @@
         <div class="hud-panel stats-left">
           <div class="bar-container">
             <div class="bar-label hp-label">
-              <span>生命活性 (HP)</span>
+              <span>生命活性</span>
               <span id="hp-text">100 / 100</span>
             </div>
             <div class="bar-track">
@@ -34,7 +34,7 @@
 
           <div class="bar-container">
             <div class="bar-label atp-label">
-              <span id="level-text">LV.1 基因进化</span>
+              <span id="level-text">LV.1 进化</span>
               <span>ATP 能量</span>
             </div>
             <div class="bar-track">
@@ -70,17 +70,17 @@
         </div>
       </div>
 
-      <!-- Bottom Controls Hint -->
+      <!-- Bottom Controls Hint (Desktop only) -->
       <div class="bottom-hud">
         <div class="shortcuts-hint">
-          <div class="hint-key"><kbd>WASD / 鼠标</kbd> 移动 & 瞄准</div>
-          <div class="hint-key"><kbd>Space / 右键</kbd> 🧬 有丝分裂 (Split)</div>
-          <div class="hint-key"><kbd>E / Shift</kbd> 💥 聚变合体 (Merge)</div>
+          <div class="hint-key"><kbd>WASD / 触屏拖拽</kbd> 移动</div>
+          <div class="hint-key"><kbd>Space / 左下分裂</kbd> 🧬 分裂</div>
+          <div class="hint-key"><kbd>E / 左下聚变</kbd> 💥 聚变</div>
         </div>
       </div>
     </div>
 
-    <!-- Mobile Touch Controls -->
+    <!-- Mobile Touch Action Buttons (Left Hand Side) -->
     <div id="mobile-controls" class="mobile-controls">
       <div class="touch-actions-left">
         <button id="btn-split" class="touch-btn split-btn" title="有丝分裂">
@@ -94,57 +94,40 @@
       </div>
     </div>
 
-    <!-- Start Menu Modal -->
+    <!-- Start Menu Modal (Clean, Streamlined, No Wall of Text) -->
     <div id="modal-start" class="modal-backdrop">
-      <div class="modal-card">
+      <div class="modal-card start-card">
         <h1 class="game-title">细胞裂变</h1>
-        <div class="game-subtitle">MITOSIS ARENA • 微观肉鸽动作射击</div>
+        <div class="game-subtitle">MITOSIS ARENA</div>
 
         <!-- Difficulty Selector -->
         <div class="difficulty-selector">
-          <button id="diff-normal" class="diff-btn active">🧪 标准增殖 (Normal)</button>
-          <button id="diff-insane" class="diff-btn insane">☣️ 异变狂暴 (Insane 1.5x)</button>
+          <button id="diff-normal" class="diff-btn active">🧪 标准模式</button>
+          <button id="diff-insane" class="diff-btn insane">☣️ 狂暴模式 (1.5x)</button>
         </div>
 
-        <!-- Cell Strain / Class Selector -->
-        <div class="strain-section-title">🧬 选择初始培养菌株 (SELECT CELL STRAIN)</div>
+        <!-- Cell Strain / Class Selector (Compact 2x2 grid) -->
+        <div class="strain-header">🧬 选择初始菌株</div>
         <div class="strain-selector">
           <div class="strain-card active" data-strain="strain_standard">
-            <div class="strain-icon">🧪</div>
-            <div class="strain-name">原核标准株</div>
-            <div class="strain-tag">均衡增殖</div>
-            <div class="strain-desc">机能均衡，经典分裂与聚变冲击波体验。</div>
+            <span class="strain-icon">🧪</span>
+            <div class="strain-text"><strong>原核标准</strong><span>均衡全能</span></div>
           </div>
           <div class="strain-card" data-strain="strain_ciliate">
-            <div class="strain-icon">⚡</div>
-            <div class="strain-name">极速纤毛株</div>
-            <div class="strain-tag">32分裂弹幕</div>
-            <div class="strain-desc">分裂上限翻倍至32个，移速极快，爆发火力全屏覆盖。</div>
+            <span class="strain-icon">⚡</span>
+            <div class="strain-text"><strong>极速纤毛</strong><span>32裂变弹幕</span></div>
           </div>
           <div class="strain-card" data-strain="strain_phagocyte">
-            <div class="strain-icon">🛡️</div>
-            <div class="strain-name">单核巨噬株</div>
-            <div class="strain-tag">肉盾黑洞体</div>
-            <div class="strain-desc">锁定单核母体，生命+120%，自带吞噬引力光环与反伤。</div>
+            <span class="strain-icon">🛡️</span>
+            <div class="strain-text"><strong>单核巨噬</strong><span>引力黑洞母体</span></div>
           </div>
           <div class="strain-card" data-strain="strain_extremophile">
-            <div class="strain-icon">☣️</div>
-            <div class="strain-name">嗜酸异化株</div>
-            <div class="strain-tag">剧毒酸蚀流</div>
-            <div class="strain-desc">移动遗留酸液粘带，开局毒素弹与中毒吸血，高风险走位。</div>
+            <span class="strain-icon">☣️</span>
+            <div class="strain-text"><strong>嗜酸异化</strong><span>酸蚀剧毒流</span></div>
           </div>
         </div>
 
-        <div class="instructions-grid">
-          <div class="instruction-item">
-            <h4>🧬 有丝分裂 & 💥 聚变合体</h4>
-            <p>Space/右键分裂化身多倍火网；E/Shift合体回拉引发清屏冲击波与护盾。</p>
-          </div>
-          <div class="instruction-item">
-            <h4>⚡ 究极基因共鸣 (超武系统)</h4>
-            <p>搭配特定基础突变（如电网+骨刺、聚变+吞噬）将进化出毁灭性究极超武！</p>
-          </div>
-        </div>
+        <div class="quick-tips">🕹️ 触屏任意位置滑动控制移动 • 左下角按钮触发分裂与合体</div>
 
         <button id="btn-start" class="btn-primary">
           <span>⚡ 开始培养 (START)</span>
@@ -152,31 +135,33 @@
       </div>
     </div>
 
-    <!-- DNA Mutation Level Up Modal -->
+    <!-- DNA Mutation Level Up Modal (Ultra Compact & Scrollable) -->
     <div id="modal-mutation" class="modal-backdrop hidden">
       <div class="modal-card mutation-container">
-        <h2 class="game-title" style="font-size: 28px;">🧬 DNA 基因突变</h2>
-        <div class="game-subtitle">请选择一项细胞进化的突变方向</div>
+        <div class="mutation-header">
+          <h2 class="mutation-title">🧬 基因突变进化</h2>
+          <span class="mutation-subtitle">选择一项进化方向</span>
+        </div>
         <div id="cards-deck" class="cards-deck"></div>
       </div>
     </div>
 
     <!-- Pause Modal -->
     <div id="modal-pause" class="modal-backdrop hidden">
-      <div class="modal-card" style="max-width: 400px;">
-        <h2 class="game-title" style="font-size: 30px;">游戏暂停</h2>
-        <div class="game-subtitle">细胞培养处于低温冷冻状态</div>
+      <div class="modal-card" style="max-width: 360px;">
+        <h2 class="game-title" style="font-size: 26px;">游戏暂停</h2>
+        <div class="game-subtitle">细胞处于冷冻状态</div>
         <button onclick="window.game.resumeGame()" class="btn-primary" style="margin-top: 10px;">
-          <span>▶️ 继续实验</span>
+          <span>▶️ 继续游戏</span>
         </button>
       </div>
     </div>
 
     <!-- Game Over Modal -->
     <div id="modal-gameover" class="modal-backdrop hidden">
-      <div class="modal-card" style="max-width: 480px;">
-        <h2 class="game-title" style="font-size: 32px; background: linear-gradient(90deg, #ff0055, #ffaa00); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">细胞坏死</h2>
-        <div class="game-subtitle">本次生物培养实验已终止</div>
+      <div class="modal-card" style="max-width: 440px;">
+        <h2 class="game-title" style="font-size: 28px; background: linear-gradient(90deg, #ff0055, #ffaa00); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">细胞坏死</h2>
+        <div class="game-subtitle">实验终止</div>
 
         <div class="stats-summary">
           <div class="stat-box">
@@ -184,7 +169,7 @@
             <div id="stat-time" class="value">00:00</div>
           </div>
           <div class="stat-box">
-            <div class="title">吞噬微生物</div>
+            <div class="title">消灭微生物</div>
             <div id="stat-kills" class="value">0</div>
           </div>
           <div class="stat-box">
@@ -192,13 +177,13 @@
             <div id="stat-cells" class="value">1</div>
           </div>
           <div class="stat-box">
-            <div class="title">综合评分</div>
+            <div class="title">综合得分</div>
             <div id="stat-score" class="value">0</div>
           </div>
         </div>
 
         <button id="btn-restart" class="btn-primary">
-          <span>🔄 重新增殖 (RESTART)</span>
+          <span>🔄 重新实验 (RESTART)</span>
         </button>
       </div>
     </div>
