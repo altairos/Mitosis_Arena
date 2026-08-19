@@ -7,6 +7,7 @@ class GameRenderer {
     
     this.width = window.innerWidth;
     this.height = window.innerHeight;
+    this.dpr = 1;
     this.resize();
 
     // Camera
@@ -38,8 +39,10 @@ class GameRenderer {
   resize() {
     this.width = window.innerWidth;
     this.height = window.innerHeight;
-    this.canvas.width = this.width;
-    this.canvas.height = this.height;
+    // Render at native device resolution for crisp visuals (capped for perf)
+    this.dpr = Math.min(2, window.devicePixelRatio || 1);
+    this.canvas.width = Math.round(this.width * this.dpr);
+    this.canvas.height = Math.round(this.height * this.dpr);
   }
 
   addShake(amount) {
@@ -82,7 +85,10 @@ class GameRenderer {
   beginFrame() {
     const ctx = this.ctx;
     ctx.save();
-    
+
+    // Scale for high-DPI screens; all drawing below uses CSS pixels
+    ctx.scale(this.dpr, this.dpr);
+
     // Clear background
     ctx.fillStyle = "#03080e";
     ctx.fillRect(0, 0, this.width, this.height);
@@ -357,7 +363,11 @@ class GameRenderer {
     ctx.arc(pool.x, pool.y, pool.radius, 0, Math.PI * 2);
     const alpha = Math.min(0.7, pool.duration / pool.maxDuration);
     
-    if (pool.isHyper) {
+    if (pool.isEnemy) {
+      ctx.fillStyle = "rgba(255, 70, 100, " + alpha + ")";
+      ctx.shadowColor = "#ff3366";
+      ctx.shadowBlur = 16;
+    } else if (pool.isHyper) {
       ctx.fillStyle = "rgba(200, 255, 0, " + alpha + ")";
       ctx.shadowColor = "#ccff00";
       ctx.shadowBlur = 22;
@@ -972,6 +982,7 @@ class GameRenderer {
 
   // Draw Floating Damage Numbers & Text
   drawFloatingTexts(texts) {
+    if (!texts || texts.length === 0) return;
     const ctx = this.ctx;
     ctx.save();
     ctx.textAlign = "center";

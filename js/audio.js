@@ -30,6 +30,16 @@ class SoundEngine {
     }
   }
 
+  // Simple per-sound throttle to avoid spawning excessive audio nodes
+  canPlay(key, minGap = 0.05) {
+    if (!this.ctx) return false;
+    if (!this._lastPlayTimes) this._lastPlayTimes = {};
+    const now = this.ctx.currentTime;
+    if (now - (this._lastPlayTimes[key] || -Infinity) < minGap) return false;
+    this._lastPlayTimes[key] = now;
+    return true;
+  }
+
   toggleMute() {
     this.isMuted = !this.isMuted;
     if (this.masterGain && this.ctx) {
@@ -63,6 +73,7 @@ class SoundEngine {
   // 1. Shoot Sound (Snappy bio-needle/laser)
   playShoot(pitchMultiplier = 1.0) {
     if (!this.initialized || this.isMuted) return;
+    if (!this.canPlay("shoot", 0.045)) return;
     this.resume();
     const t = this.ctx.currentTime;
     
@@ -180,6 +191,7 @@ class SoundEngine {
   // 4. Hit / Damage Squish Impact
   playHit() {
     if (!this.initialized || this.isMuted) return;
+    if (!this.canPlay("hit", 0.08)) return;
     this.resume();
     const t = this.ctx.currentTime;
     
@@ -201,6 +213,7 @@ class SoundEngine {
   // 5. Enemy Rupture / Pop
   playEnemyDeath() {
     if (!this.initialized || this.isMuted) return;
+    if (!this.canPlay("enemyDeath", 0.05)) return;
     this.resume();
     const t = this.ctx.currentTime;
     
@@ -222,6 +235,7 @@ class SoundEngine {
   // 6. ATP Energy Pickup Chime
   playCollectATP() {
     if (!this.initialized || this.isMuted) return;
+    if (!this.canPlay("collectATP", 0.06)) return;
     this.resume();
     const t = this.ctx.currentTime;
     
@@ -296,6 +310,7 @@ class SoundEngine {
   // 9. Electric Arc Zap
   playElectric() {
     if (!this.initialized || this.isMuted) return;
+    if (!this.canPlay("electric", 0.09)) return;
     this.resume();
     const t = this.ctx.currentTime;
     

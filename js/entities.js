@@ -56,7 +56,7 @@ class Shockwave {
 
 // 3. Acid Pool Class
 class AcidPool {
-  constructor(x, y, radius, damagePerSec, duration = 5.0, isHyper = false) {
+  constructor(x, y, radius, damagePerSec, duration = 5.0, isHyper = false, isEnemy = false) {
     this.x = x;
     this.y = y;
     this.radius = radius;
@@ -65,6 +65,7 @@ class AcidPool {
     this.duration = duration;
     this.tickTimer = 0;
     this.isHyper = isHyper;
+    this.isEnemy = isEnemy;
   }
 
   update(dt) {
@@ -96,7 +97,7 @@ class AtpOrb {
     const dy = targetY - this.y;
     const dist = Math.hypot(dx, dy);
 
-    if (dist < magnetRadius) {
+    if (dist < magnetRadius && dist > 0.001) {
       const pull = Math.min(900, (1 - dist / magnetRadius) * 750 + 220);
       this.vx += (dx / dist) * pull * dt;
       this.vy += (dy / dist) * pull * dt;
@@ -267,33 +268,41 @@ class PlayerGroup {
     const isTesla = this.stats.hasTeslaPulsar;
     const thornCount = isTesla ? 18 : 12;
 
-    this.cells.forEach(cell => {
-      const newRadius = Math.max(14, cell.radius * 0.707);
-      const splitAngle = Math.random() * Math.PI * 2;
-      const pushDist = newRadius * 1.4;
-      const pushSpeed = 190;
+    // Each split adds one net cell; only split as many cells as the cap allows
+    const splitCount = Math.min(this.cells.length, this.maxCellCap - this.cells.length);
 
-      newCells.push({
-        x: cell.x + Math.cos(splitAngle) * pushDist,
-        y: cell.y + Math.sin(splitAngle) * pushDist,
-        vx: cell.vx + Math.cos(splitAngle) * pushSpeed,
-        vy: cell.vy + Math.sin(splitAngle) * pushSpeed,
-        radius: newRadius,
-        targetRadius: newRadius,
-        wobbleOffset: Math.random() * Math.PI * 2,
-        hasShield: cell.hasShield
-      });
+    this.cells.forEach((cell, i) => {
+      if (i < splitCount) {
+        const newRadius = Math.max(14, cell.radius * 0.707);
+        const splitAngle = Math.random() * Math.PI * 2;
+        const pushDist = newRadius * 1.4;
+        const pushSpeed = 190;
 
-      newCells.push({
-        x: cell.x - Math.cos(splitAngle) * pushDist,
-        y: cell.y - Math.sin(splitAngle) * pushDist,
-        vx: cell.vx - Math.cos(splitAngle) * pushSpeed,
-        vy: cell.vy - Math.sin(splitAngle) * pushSpeed,
-        radius: newRadius,
-        targetRadius: newRadius,
-        wobbleOffset: Math.random() * Math.PI * 2,
-        hasShield: cell.hasShield
-      });
+        newCells.push({
+          x: cell.x + Math.cos(splitAngle) * pushDist,
+          y: cell.y + Math.sin(splitAngle) * pushDist,
+          vx: cell.vx + Math.cos(splitAngle) * pushSpeed,
+          vy: cell.vy + Math.sin(splitAngle) * pushSpeed,
+          radius: newRadius,
+          targetRadius: newRadius,
+          wobbleOffset: Math.random() * Math.PI * 2,
+          hasShield: cell.hasShield
+        });
+
+        newCells.push({
+          x: cell.x - Math.cos(splitAngle) * pushDist,
+          y: cell.y - Math.sin(splitAngle) * pushDist,
+          vx: cell.vx - Math.cos(splitAngle) * pushSpeed,
+          vy: cell.vy - Math.sin(splitAngle) * pushSpeed,
+          radius: newRadius,
+          targetRadius: newRadius,
+          wobbleOffset: Math.random() * Math.PI * 2,
+          hasShield: cell.hasShield
+        });
+      } else {
+        // Cell cap reached: carry this cell over unchanged
+        newCells.push(cell);
+      }
 
       if ((this.stats.splitThornsRank > 0 || isTesla) && projectiles) {
         const thornDmg = this.baseDamage * (0.8 + 0.35 * this.stats.splitThornsRank) * (isTesla ? 1.6 : 1.0);
@@ -325,6 +334,7 @@ class PlayerGroup {
 
   merge(shockwaves, acidPools) {
     if (this.cells.length <= 1 || this.isMerging) return false;
+    if (this.mergeCooldown > 0) return false;
     this.isMerging = true;
     return true;
   }
@@ -772,7 +782,7 @@ class Enemy {
       this.trailTimer += dt;
       if (this.trailTimer >= 0.85 && acidPools) {
         this.trailTimer = 0;
-        acidPools.push(new AcidPool(this.x, this.y, 22, 16, 2.8));
+        acidPools.push(new AcidPool(this.x, this.y, 22, 16, 2.8, false, true));
       }
 
     } else if (this.type === "ciliate") {
@@ -872,6 +882,7 @@ class BossEnemy extends Enemy {
   constructor(x, y, bossType = "queen", wave = 5, difficultyMult = 1.0) {
     super(x, y, "boss", wave, difficultyMult);
     this.isBoss = true;
+    this.isElite = false;
     this.bossType = bossType;
     this.radius = 62;
     this.attackTimer = 0;
@@ -1085,7 +1096,7 @@ class BossEnemy extends Enemy {
       // Expanding toxic shockwave / acid burst
       if (this.secondaryTimer >= 3.2 && acidPools) {
         this.secondaryTimer = 0;
-        acidPools.push(new AcidPool(this.x, this.y, 140, 45, 4.5));
+        acidPools.push(new AcidPool(this.x, this.y, 140, 45, 4.5, false, true));
         const ringBullets = 16;
         for (let i = 0; i < ringBullets; i++) {
           const a = (i * Math.PI * 2) / ringBullets;

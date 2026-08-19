@@ -6,6 +6,30 @@ class GameEngine {
     this.renderer = new window.GameRenderer(this.canvas);
     this.player = new window.PlayerGroup();
 
+    // Cached DOM references (avoid per-frame getElementById lookups)
+    this.dom = {
+      hpFill: document.getElementById("hp-fill"),
+      hpText: document.getElementById("hp-text"),
+      atpFill: document.getElementById("atp-fill"),
+      levelText: document.getElementById("level-text"),
+      cellCountText: document.getElementById("cell-count-text"),
+      timerDisplay: document.getElementById("timer-display"),
+      waveText: document.getElementById("wave-text"),
+      scoreText: document.getElementById("score-text"),
+      bossBarPanel: document.getElementById("boss-bar-panel"),
+      bossTitle: document.getElementById("boss-title"),
+      bossBarFill: document.getElementById("boss-bar-fill"),
+      surgeBanner: document.getElementById("surge-banner"),
+      modalPause: document.getElementById("modal-pause"),
+      modalMutation: document.getElementById("modal-mutation"),
+      modalGameover: document.getElementById("modal-gameover"),
+      cardsDeck: document.getElementById("cards-deck"),
+      statTime: document.getElementById("stat-time"),
+      statKills: document.getElementById("stat-kills"),
+      statCells: document.getElementById("stat-cells"),
+      statScore: document.getElementById("stat-score")
+    };
+
     this.arenaRadius = 1650;
     this.state = "MENU"; // MENU, PLAYING, LEVEL_UP, PAUSED, GAMEOVER, VICTORY
     this.difficultyMult = 1.0; // 1.0 Normal, 1.5 Insane
@@ -132,18 +156,21 @@ class GameEngine {
     this.waveTimer = 0;
     this.surgeTimer = 0;
 
+    // Clear stale boss HUD from previous run
+    if (this.dom.bossBarPanel) this.dom.bossBarPanel.style.display = "none";
+
     this.state = "PLAYING";
     this.lastTime = performance.now();
   }
 
   pauseGame() {
     this.state = "PAUSED";
-    document.getElementById("modal-pause").classList.remove("hidden");
+    this.dom.modalPause.classList.remove("hidden");
   }
 
   resumeGame() {
     this.state = "PLAYING";
-    document.getElementById("modal-pause").classList.add("hidden");
+    this.dom.modalPause.classList.add("hidden");
     this.lastTime = performance.now();
   }
 
@@ -203,7 +230,7 @@ class GameEngine {
     }
 
     this.player.update(
-      dt, moveVec, worldMouse, this.arenaRadius,
+      dt, moveVec, targetWorldPoint, this.arenaRadius,
       this.shockwaves, this.acidPools, this.projectiles, this.enemies
     );
 
@@ -216,14 +243,18 @@ class GameEngine {
 
     this.updateSpawning(dt);
 
+    // Spawn requests made during update/death go to a pending queue:
+    // pushing into the array being filtered would silently drop them
+    const pendingSpawns = [];
     this.enemies = this.enemies.filter(e => {
       const dead = e.update(
-        dt, this.player.centroid, this.projectiles, this.enemies,
+        dt, this.player.centroid, this.projectiles, pendingSpawns,
         this.acidPools, this.shockwaves, this.player
       );
-      if (dead) this.handleEnemyDeath(e);
+      if (dead) this.handleEnemyDeath(e, pendingSpawns);
       return !dead;
     });
+    if (pendingSpawns.length > 0) this.enemies.push(...pendingSpawns);
 
     this.projectiles = this.projectiles.filter(p => !p.update(dt));
     this.shockwaves = this.shockwaves.filter(sw => !sw.update(dt));
@@ -253,7 +284,7 @@ class GameEngine {
     this.renderer.addShake(10);
     
     // Show banner
-    const banner = document.getElementById("surge-banner");
+    const banner = this.dom.surgeBanner;
     if (banner) {
       banner.style.display = "block";
       setTimeout(() => { banner.style.display = "none"; }, 3000);
@@ -342,14 +373,22 @@ class GameEngine {
     }
 
     const angle = Math.random() * Math.PI * 2;
-    const x = this.player.centroid.x + Math.cos(angle) * 700;
-    const y = this.player.centroid.y + Math.sin(angle) * 700;
-    
+    let x = this.player.centroid.x + Math.cos(angle) * 700;
+    let y = this.player.centroid.y + Math.sin(angle) * 700;
+
+    // Clamp spawn point inside the petri dish
+    const dFromOrigin = Math.hypot(x, y);
+    const maxSpawnDist = this.arenaRadius - 120;
+    if (dFromOrigin > maxSpawnDist && dFromOrigin > 0) {
+      x = (x / dFromOrigin) * maxSpawnDist;
+      y = (y / dFromOrigin) * maxSpawnDist;
+    }
+
     this.activeBoss = new window.BossEnemy(x, y, bossType, this.wave, this.difficultyMult);
     this.enemies.push(this.activeBoss);
 
-    const bossPanel = document.getElementById("boss-bar-panel");
-    const bossTitle = document.getElementById("boss-title");
+    const bossPanel = this.dom.bossBarPanel;
+    const bossTitle = this.dom.bossTitle;
     if (bossPanel && bossTitle) {
       bossTitle.innerText = this.activeBoss.name;
       bossPanel.style.display = "flex";
@@ -457,8 +496,9 @@ class GameEngine {
       }
     });
 
-    // 4. Acid Pools vs Enemies
+    // 4a. Player Acid Pools vs Enemies
     this.acidPools.forEach(pool => {
+      if (pool.isEnemy) return;
       for (let e of this.enemies) {
         const d = Math.hypot(pool.x - e.x, pool.y - e.y);
         if (d < pool.radius + e.radius) {
@@ -470,6 +510,18 @@ class GameEngine {
             e.vx *= 0.55;
             e.vy *= 0.55;
           }
+        }
+      }
+    });
+
+    // 4b. Enemy Acid Pools vs Player Cells
+    this.acidPools.forEach(pool => {
+      if (!pool.isEnemy) return;
+      for (let cell of player.cells) {
+        const d = Math.hypot(pool.x - cell.x, pool.y - cell.y);
+        if (d < pool.radius + cell.radius) {
+          player.takeDamage(pool.damagePerSec * 0.6 * dt, this.acidPools);
+          break;
         }
       }
     });
@@ -503,7 +555,7 @@ class GameEngine {
       for (let e of this.enemies) {
         if (e.isBoss) continue;
         const d = Math.hypot(prime.x - e.x, prime.y - e.y);
-        if (d < suctionRange) {
+        if (d < suctionRange && d > 0.001) {
           e.x += ((prime.x - e.x) / d) * 180 * dt;
           e.y += ((prime.y - e.y) / d) * 180 * dt;
           
@@ -518,8 +570,9 @@ class GameEngine {
       }
     }
 
-    // 7. Enemy Contact vs Player Cells
+    // 7. Enemy Contact vs Player Cells (skip enemies killed this frame)
     for (let e of this.enemies) {
+      if (e.hp <= 0) continue;
       for (let cell of player.cells) {
         const d = Math.hypot(cell.x - e.x, cell.y - e.y);
         if (d < cell.radius + e.radius) {
@@ -548,7 +601,7 @@ class GameEngine {
     });
   }
 
-  handleEnemyDeath(enemy) {
+  handleEnemyDeath(enemy, spawnedQueue) {
     this.enemiesKilled++;
     this.score += enemy.atpValue * 15;
     window.soundEngine.playEnemyDeath();
@@ -572,20 +625,20 @@ class GameEngine {
         mini.maxHp = 50;
         mini.hp = 50;
         mini.canSplit = false;
-        this.enemies.push(mini);
+        spawnedQueue.push(mini);
       }
     }
 
     if (enemy.type === "macrophage" && this.acidPools) {
-      // Releasing digestive enzymes on death
-      this.acidPools.push(new window.AcidPool(enemy.x, enemy.y, 40, 25, 3.0));
+      // Releasing digestive enzymes on death (enemy-owned pool)
+      this.acidPools.push(new window.AcidPool(enemy.x, enemy.y, 40, 25, 3.0, false, true));
     }
 
     if (enemy.isBoss) {
       this.bossesDefeated++;
       this.activeBoss = null;
       this.renderer.addShake(22);
-      document.getElementById("boss-bar-panel").style.display = "none";
+      this.dom.bossBarPanel.style.display = "none";
       const orbCount = 10 + (enemy.bossType === "behemoth" ? 14 : (enemy.bossType === "rotifer" ? 9 : 5));
       for (let i = 0; i < orbCount; i++) {
         this.atpOrbs.push(new window.AtpOrb(
@@ -600,12 +653,12 @@ class GameEngine {
   triggerLevelUp() {
     this.state = "LEVEL_UP";
     this.renderMutationDeck();
-    document.getElementById("modal-mutation").classList.remove("hidden");
+    this.dom.modalMutation.classList.remove("hidden");
   }
 
   renderMutationDeck() {
     const options = window.upgradeManager.getRandomOptions(3);
-    const deck = document.getElementById("cards-deck");
+    const deck = this.dom.cardsDeck;
     deck.innerHTML = "";
 
     options.forEach(opt => {
@@ -674,38 +727,39 @@ class GameEngine {
 
   updateHUD() {
     const p = this.player;
+    const dom = this.dom;
 
     const hpPct = Math.max(0, Math.min(100, (p.hp / p.maxHp) * 100));
-    document.getElementById("hp-fill").style.width = hpPct + "%";
-    document.getElementById("hp-text").innerText = Math.ceil(p.hp) + " / " + p.maxHp;
+    dom.hpFill.style.width = hpPct + "%";
+    dom.hpText.innerText = Math.ceil(p.hp) + " / " + p.maxHp;
 
     const atpPct = Math.max(0, Math.min(100, (p.atp / p.atpNeeded) * 100));
-    document.getElementById("atp-fill").style.width = atpPct + "%";
-    document.getElementById("level-text").innerText = "LV." + p.level;
+    dom.atpFill.style.width = atpPct + "%";
+    dom.levelText.innerText = "LV." + p.level;
 
-    document.getElementById("cell-count-text").innerText = p.cells.length + " CELLS";
+    dom.cellCountText.innerText = p.cells.length + " CELLS";
 
     const mins = Math.floor(this.gameTime / 60).toString().padStart(2, "0");
     const secs = Math.floor(this.gameTime % 60).toString().padStart(2, "0");
-    document.getElementById("timer-display").innerText = mins + ":" + secs;
+    dom.timerDisplay.innerText = mins + ":" + secs;
 
-    document.getElementById("wave-text").innerText = "WAVE " + this.wave;
-    document.getElementById("score-text").innerText = "SCORE: " + this.score;
+    dom.waveText.innerText = "WAVE " + this.wave;
+    dom.scoreText.innerText = "SCORE: " + this.score;
 
     if (this.activeBoss) {
       const bossHpPct = Math.max(0, Math.min(100, (this.activeBoss.hp / this.activeBoss.maxHp) * 100));
-      document.getElementById("boss-bar-fill").style.width = bossHpPct + "%";
+      dom.bossBarFill.style.width = bossHpPct + "%";
     }
   }
 
   gameOver() {
     this.state = "GAMEOVER";
-    document.getElementById("stat-time").innerText = document.getElementById("timer-display").innerText;
-    document.getElementById("stat-kills").innerText = this.enemiesKilled;
-    document.getElementById("stat-cells").innerText = this.maxCellsFormed;
-    document.getElementById("stat-score").innerText = this.score;
+    this.dom.statTime.innerText = this.dom.timerDisplay.innerText;
+    this.dom.statKills.innerText = this.enemiesKilled;
+    this.dom.statCells.innerText = this.maxCellsFormed;
+    this.dom.statScore.innerText = this.score;
 
-    document.getElementById("modal-gameover").classList.remove("hidden");
+    this.dom.modalGameover.classList.remove("hidden");
   }
 
   render(time, dt) {
@@ -733,9 +787,7 @@ class GameEngine {
 
     this.shockwaves.forEach(sw => this.renderer.drawShockwave(sw));
 
-    this.floatingTexts.forEach(t => {
-      this.renderer.drawFloatingTexts([t]);
-    });
+    this.renderer.drawFloatingTexts(this.floatingTexts);
 
     this.renderer.endFrame();
   }

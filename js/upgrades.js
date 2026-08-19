@@ -388,6 +388,11 @@ class UpgradeManager {
     while (chosen.length < count && weighted.length > 0) {
       const idx = Math.floor(Math.random() * weighted.length);
       const pick = weighted[idx];
+      // Remove every entry of the picked mutation so the pool shrinks
+      // and the loop always makes progress (prevents infinite loops)
+      for (let i = weighted.length - 1; i >= 0; i--) {
+        if (weighted[i] === pick) weighted.splice(i, 1);
+      }
       if (!chosen.some(c => c.id === pick.id)) {
         chosen.push(pick);
       }
