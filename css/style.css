@@ -557,6 +557,142 @@ canvas#gameCanvas {
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7), 0 0 30px rgba(255, 170, 0, 0.4);
 }
 
+/* Hyper Mutation Super-Weapon Card */
+.mutation-card.tier-hyper {
+  border: 2px solid #ff00ea;
+  background: linear-gradient(145deg, rgba(35, 10, 50, 0.95), rgba(15, 5, 25, 0.98));
+  box-shadow: 0 0 25px rgba(255, 0, 234, 0.35);
+  animation: hyper-glow 2s infinite alternate;
+}
+
+.mutation-card.tier-hyper::before {
+  background: linear-gradient(90deg, #00f0ff, #ff00ea, #ffff00, #00ffaa);
+  background-size: 300% 100%;
+  animation: rainbow-bar 3s linear infinite;
+  height: 5px;
+}
+
+@keyframes rainbow-bar {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+@keyframes hyper-glow {
+  0% { box-shadow: 0 0 20px rgba(255, 0, 234, 0.3); transform: scale(1); }
+  100% { box-shadow: 0 0 35px rgba(0, 240, 255, 0.6), 0 0 25px rgba(255, 0, 234, 0.5); transform: scale(1.02); }
+}
+
+.mutation-card.tier-hyper .card-tier {
+  color: #ff00ea;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px #ff00ea;
+}
+
+.card-req {
+  font-size: 11px;
+  font-weight: bold;
+  color: #00ffaa;
+  background: rgba(0, 255, 170, 0.12);
+  border: 1px solid rgba(0, 255, 170, 0.3);
+  padding: 3px 8px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.btn-reroll {
+  background: rgba(12, 34, 52, 0.9);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  color: #00f0ff;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 24px;
+  border-radius: 20px;
+  margin-top: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-reroll:hover:not(:disabled) {
+  background: rgba(0, 240, 255, 0.2);
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+.btn-reroll:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #708a9c;
+}
+
+/* Strain Selector in Start Modal */
+.strain-section-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #00f0ff;
+  letter-spacing: 1.5px;
+  margin-bottom: 12px;
+}
+
+.strain-selector {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.strain-card {
+  background: rgba(6, 22, 36, 0.8);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 12px;
+  padding: 12px 10px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.strain-card:hover {
+  border-color: #00f0ff;
+  transform: translateY(-3px);
+}
+
+.strain-card.active {
+  background: rgba(0, 240, 255, 0.15);
+  border-color: #00f0ff;
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.35);
+}
+
+.strain-icon {
+  font-size: 24px;
+}
+
+.strain-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.strain-tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: #00ffaa;
+  background: rgba(0, 255, 170, 0.12);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.strain-desc {
+  font-size: 11px;
+  color: #8bb5d1;
+  line-height: 1.35;
+  margin-top: 4px;
+}
+
 .card-icon {
   font-size: 38px;
   margin-bottom: 12px;

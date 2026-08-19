@@ -1,5 +1,76 @@
-// DNA Mutation Catalog & Upgrade State System
+// DNA Mutation Catalog, Synergy Hyper-Mutations & Strain System
 
+// 1. Starter Cell Lineages (初始菌种株系)
+const CELL_STRAINS = [
+  {
+    id: "strain_standard",
+    name: "原核标准株",
+    icon: "🧪",
+    tag: "均衡发展",
+    desc: "各项生理机能均衡，标准分裂增殖与聚变清屏体验。",
+    apply: (player) => {
+      player.maxHp = 100;
+      player.hp = 100;
+      player.maxCellCap = 16;
+      player.moveSpeed = 290;
+      player.baseDamage = 16;
+    }
+  },
+  {
+    id: "strain_ciliate",
+    name: "极速纤毛株",
+    icon: "⚡",
+    tag: "暴风雨弹幕",
+    desc: "最大分裂上限翻倍至 32 个，移速 +25%，分裂冷却 -50%，但单发子弹威力 -25%。",
+    apply: (player) => {
+      player.maxHp = 90;
+      player.hp = 90;
+      player.maxCellCap = 32;
+      player.moveSpeed = 360;
+      player.splitCooldownMax = 0.45;
+      player.baseDamage = 12;
+    }
+  },
+  {
+    id: "strain_phagocyte",
+    name: "单核巨噬株",
+    icon: "🛡️",
+    tag: "肉盾引力母体",
+    desc: "无法进行有丝分裂（恒定 1 个巨核体），生命上限 +120%，开局自带「巨核吞噬」引力光环与反伤护盾。",
+    apply: (player) => {
+      player.maxHp = 220;
+      player.hp = 220;
+      player.maxCellCap = 1;
+      player.moveSpeed = 260;
+      player.baseDamage = 26;
+      player.cells[0].radius = 62;
+      player.cells[0].targetRadius = 62;
+      player.stats.hasPhagocytosis = true;
+      player.stats.phagocytosisRange = 60;
+      player.stats.hasMergeShield = true;
+      player.shield = 40;
+    }
+  },
+  {
+    id: "strain_extremophile",
+    name: "嗜酸异化株",
+    icon: "☣️",
+    tag: "生化毒蚀走位",
+    desc: "游动时持续遗留高浓酸液轨迹，开局自带神经毒素与吸血，但最大生命 -20%。",
+    apply: (player) => {
+      player.maxHp = 80;
+      player.hp = 80;
+      player.maxCellCap = 16;
+      player.moveSpeed = 310;
+      player.baseDamage = 15;
+      player.stats.poisonRank = 1;
+      player.stats.vampiricRank = 1;
+      player.stats.hasAcidTrail = true;
+    }
+  }
+];
+
+// 2. Base DNA Mutations (基础突变)
 const DNA_MUTATIONS = [
   {
     id: "swarm_web",
@@ -46,7 +117,7 @@ const DNA_MUTATIONS = [
     name: "线粒体狂暴",
     icon: "🔋",
     tier: "epic",
-    desc: "场上每多存在 1 个子细胞，全体细胞的攻击速度与子弹飞行速度提升 12%。",
+    desc: "场上每多存在 1 个子细胞，全体细胞的攻击速度与子弹飞行速度提升 14%。",
     maxRank: 3,
     rank: 0,
     apply: (player) => { player.stats.mitochondrialRank += 1; }
@@ -167,26 +238,145 @@ const DNA_MUTATIONS = [
   }
 ];
 
+// 3. Bio-Synergy Hyper-Mutations (5 种组合超武 / 究极基因)
+const HYPER_MUTATIONS = [
+  {
+    id: "hyper_tesla_star",
+    name: "「特斯拉脉冲星」",
+    icon: "🌠",
+    tier: "hyper",
+    reqDesc: "前置: 蜂群电网 + 有丝突刺",
+    req: ["swarm_web", "mitotic_thorns"],
+    desc: "【究极超武】电网升级为等离子电弧，高频向全图敌人链式传导连锁雷击；分裂时的骨刺带电且无限穿透！",
+    maxRank: 1,
+    rank: 0,
+    apply: (player) => {
+      player.stats.hasTeslaPulsar = true;
+      player.stats.hasElectricWeb = true;
+      player.stats.webDamageMult += 1.5;
+    }
+  },
+  {
+    id: "hyper_singularity",
+    name: "「坍缩引力奇点」",
+    icon: "🌌",
+    tier: "hyper",
+    reqDesc: "前置: 聚变超新星 + 巨核吞噬",
+    req: ["supernova_fusion", "phagocytosis"],
+    desc: "【究极超武】聚变合体时在中心生成持续 6 秒的微观黑洞，持续牵引撕碎周围所有非首领敌人与射弹！",
+    maxRank: 1,
+    rank: 0,
+    apply: (player) => {
+      player.stats.hasSingularityVortex = true;
+      player.stats.supernovaRank += 2;
+    }
+  },
+  {
+    id: "hyper_wasp_swarm",
+    name: "「寄生自爆蜂群」",
+    icon: "🐝",
+    tier: "hyper",
+    reqDesc: "前置: 寄生噬菌 + 神经毒素",
+    req: ["parasitic_drones", "neurotoxin"],
+    desc: "【究极超武】噬菌体僚机进化为生化巨蜂，发射穿透毒针，并在消亡时产生剧毒大爆炸，向八方喷射追踪毒孢！",
+    maxRank: 1,
+    rank: 0,
+    apply: (player) => {
+      player.stats.hasParasiticHive = true;
+      player.stats.droneSpawnChance = Math.max(player.stats.droneSpawnChance, 0.45);
+    }
+  },
+  {
+    id: "hyper_prismatic_ray",
+    name: "「棱镜死亡射线」",
+    icon: "💎",
+    tier: "hyper",
+    reqDesc: "前置: 生物激光 + 基因暴击",
+    req: ["bio_laser", "critical_mutation"],
+    desc: "【究极超武】激光束命中敌人时光束折射分裂出 3 道次级折射激光，激光暴击造成 300% 伤害并吸取生命！",
+    maxRank: 1,
+    rank: 0,
+    apply: (player) => {
+      player.stats.hasPrismaticLaser = true;
+      player.stats.laserRank = Math.max(player.stats.laserRank, 2);
+      player.stats.critChance += 0.35;
+      player.stats.critMult += 1.0;
+    }
+  },
+  {
+    id: "hyper_acid_overload",
+    name: "「过载酸蚀核」",
+    icon: "🌋",
+    tier: "hyper",
+    reqDesc: "前置: 溶酶体自爆 + 线粒体狂暴",
+    req: ["caustic_lysosomes", "mitochondrial_surge"],
+    desc: "【究极超武】母体与子细胞移动时持续生成高浓腐蚀酸液带，酸液伤害提升 250% 并附带 60% 强力减速，敌人死于酸液时发生连锁酸爆！",
+    maxRank: 1,
+    rank: 0,
+    apply: (player) => {
+      player.stats.hasHyperAcid = true;
+      player.stats.hasAcidTrail = true;
+      player.stats.acidPoolRank += 2;
+    }
+  }
+];
+
 class UpgradeManager {
   constructor() {
+    this.strains = CELL_STRAINS;
+    this.selectedStrainId = "strain_standard";
+    this.rerollCount = 1;
+    this.maxRerolls = 1;
+
     this.mutations = JSON.parse(JSON.stringify(DNA_MUTATIONS));
-    // Restore apply functions from master
     this.mutations.forEach((m, idx) => {
       m.apply = DNA_MUTATIONS[idx].apply;
+    });
+
+    this.hypers = JSON.parse(JSON.stringify(HYPER_MUTATIONS));
+    this.hypers.forEach((h, idx) => {
+      h.apply = HYPER_MUTATIONS[idx].apply;
     });
   }
 
   reset() {
     this.mutations.forEach(m => m.rank = 0);
+    this.hypers.forEach(h => h.rank = 0);
+    this.rerollCount = this.maxRerolls;
+  }
+
+  setStrain(strainId) {
+    this.selectedStrainId = strainId;
+  }
+
+  applyStartingStrain(player) {
+    const strain = this.strains.find(s => s.id === this.selectedStrainId) || this.strains[0];
+    strain.apply(player);
+    player.strainId = strain.id;
   }
 
   getRandomOptions(count = 3) {
-    const available = this.mutations.filter(m => m.rank < m.maxRank);
-    if (available.length <= count) return available;
+    // 1. Check eligible hyper mutations whose prerequisites are met
+    const availableHypers = this.hypers.filter(h => {
+      if (h.rank >= h.maxRank) return false;
+      return h.req.every(reqId => {
+        const baseMut = this.mutations.find(m => m.id === reqId);
+        return baseMut && baseMut.rank >= 1;
+      });
+    });
 
-    // Weighted random by tier
+    const availableBases = this.mutations.filter(m => m.rank < m.maxRank);
+    const chosen = [];
+
+    // Prioritize showing a Hyper-Mutation if unlocked (high exciting moment)
+    if (availableHypers.length > 0 && Math.random() < 0.85) {
+      const hyperPick = availableHypers[Math.floor(Math.random() * availableHypers.length)];
+      chosen.push(hyperPick);
+    }
+
+    // Fill remaining with weighted base mutations
     const weighted = [];
-    available.forEach(m => {
+    availableBases.forEach(m => {
       let weight = 10; // common
       if (m.tier === "epic") weight = 4;
       if (m.tier === "legendary") weight = 1.5;
@@ -195,7 +385,6 @@ class UpgradeManager {
       }
     });
 
-    const chosen = [];
     while (chosen.length < count && weighted.length > 0) {
       const idx = Math.floor(Math.random() * weighted.length);
       const pick = weighted[idx];
@@ -207,7 +396,13 @@ class UpgradeManager {
   }
 
   selectUpgrade(mutationId, player) {
-    const mut = this.mutations.find(m => m.id === mutationId);
+    // Check base
+    let mut = this.mutations.find(m => m.id === mutationId);
+    if (!mut) {
+      // Check hyper
+      mut = this.hypers.find(h => h.id === mutationId);
+    }
+
     if (mut && mut.rank < mut.maxRank) {
       mut.rank++;
       mut.apply(player);
@@ -217,4 +412,6 @@ class UpgradeManager {
   }
 }
 
+window.CELL_STRAINS = CELL_STRAINS;
 window.upgradeManager = new UpgradeManager();
+

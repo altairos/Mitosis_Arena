@@ -74,6 +74,16 @@ class GameEngine {
       });
     }
 
+    // Strain Selector Cards
+    document.querySelectorAll(".strain-card").forEach(card => {
+      card.addEventListener("click", () => {
+        document.querySelectorAll(".strain-card").forEach(c => c.classList.remove("active"));
+        card.classList.add("active");
+        const strainId = card.dataset.strain;
+        if (strainId) window.upgradeManager.setStrain(strainId);
+      });
+    });
+
     document.getElementById("btn-start").addEventListener("click", () => this.startGame());
     document.getElementById("btn-restart").addEventListener("click", () => this.startGame());
     
@@ -101,6 +111,9 @@ class GameEngine {
     this.hideAllModals();
 
     this.player.reset();
+    window.upgradeManager.reset();
+    window.upgradeManager.applyStartingStrain(this.player);
+
     this.enemies = [];
     this.projectiles = [];
     this.shockwaves = [];
@@ -119,7 +132,6 @@ class GameEngine {
     this.waveTimer = 0;
     this.surgeTimer = 0;
 
-    window.upgradeManager.reset();
     this.state = "PLAYING";
     this.lastTime = performance.now();
   }
@@ -191,7 +203,10 @@ class GameEngine {
     this.updateSpawning(dt);
 
     this.enemies = this.enemies.filter(e => {
-      const dead = e.update(dt, this.player.centroid, this.projectiles, this.enemies);
+      const dead = e.update(
+        dt, this.player.centroid, this.projectiles, this.enemies,
+        this.acidPools, this.shockwaves, this.player
+      );
       if (dead) this.handleEnemyDeath(e);
       return !dead;
     });
@@ -230,7 +245,7 @@ class GameEngine {
       setTimeout(() => { banner.style.display = "none"; }, 3000);
     }
 
-    // Spawn high-density surrounding ring of 20~35 swarmers
+    // Spawn high-density surrounding ring of 20~40 swarmers
     const surgeCount = 18 + Math.min(25, this.wave * 4);
     for (let i = 0; i < surgeCount; i++) {
       const angle = (i * Math.PI * 2) / surgeCount;
@@ -240,7 +255,15 @@ class GameEngine {
 
       const dFromOrigin = Math.hypot(x, y);
       if (dFromOrigin < this.arenaRadius - 50) {
-        const type = (i % 4 === 0 && this.wave >= 2) ? "phage" : "bacterium";
+        const pool = ["bacterium"];
+        if (this.wave >= 2) pool.push("phage");
+        if (this.wave >= 3) pool.push("flagellate");
+        if (this.wave >= 4) pool.push("spore");
+        if (this.wave >= 5) pool.push("ciliate");
+        if (this.wave >= 6) pool.push("nematode");
+        if (this.wave >= 7) pool.push("tardigrade");
+        if (this.wave >= 8) pool.push("macrophage");
+        const type = pool[Math.floor(Math.random() * pool.length)];
         this.enemies.push(new window.Enemy(x, y, type, this.wave + 1, this.difficultyMult));
       }
     }
@@ -260,9 +283,12 @@ class GameEngine {
   spawnEnemyWave() {
     const types = ["bacterium"];
     if (this.wave >= 2) types.push("phage");
-    if (this.wave >= 3) types.push("nematode");
-    if (this.wave >= 4) types.push("spore");
+    if (this.wave >= 3) types.push("flagellate");
+    if (this.wave >= 4) types.push("nematode", "spore");
+    if (this.wave >= 5) types.push("ciliate");
     if (this.wave >= 6) types.push("amoeba");
+    if (this.wave >= 7) types.push("tardigrade");
+    if (this.wave >= 8) types.push("macrophage");
 
     const count = 3 + Math.floor(this.wave * 1.5);
     for (let i = 0; i < count; i++) {
@@ -282,7 +308,25 @@ class GameEngine {
   spawnBoss() {
     window.soundEngine.playBossAlert();
     this.renderer.addShake(18);
-    const bossType = (this.wave >= 10) ? "apex" : "queen";
+
+    // Dynamic Boss Progression based on wave:
+    // Wave 5: queen
+    // Wave 10: apex
+    // Wave 15: hydra
+    // Wave 20: rotifer
+    // Wave 25+: behemoth (or cyclical rotation with scaled difficulty)
+    let bossType = "queen";
+    const bossIndex = Math.floor(this.wave / 5);
+    if (bossIndex === 1) bossType = "queen";
+    else if (bossIndex === 2) bossType = "apex";
+    else if (bossIndex === 3) bossType = "hydra";
+    else if (bossIndex === 4) bossType = "rotifer";
+    else if (bossIndex === 5) bossType = "behemoth";
+    else {
+      const bosses = ["queen", "apex", "hydra", "rotifer", "behemoth"];
+      bossType = bosses[(bossIndex - 1) % bosses.length];
+    }
+
     const angle = Math.random() * Math.PI * 2;
     const x = this.player.centroid.x + Math.cos(angle) * 700;
     const y = this.player.centroid.y + Math.sin(angle) * 700;
@@ -309,7 +353,9 @@ class GameEngine {
         const d = Math.hypot(p.x - e.x, p.y - e.y);
         if (d < p.radius + e.radius) {
           p.hitList.add(e);
-          e.hp -= p.damage;
+          let dmg = p.damage;
+          if (e.isHardened) dmg *= 0.25; // Tardigrade Cryptobiosis armor
+          e.hp -= dmg;
           e.hitFlashTimer = 0.08;
 
           if (p.poison) {
@@ -317,7 +363,33 @@ class GameEngine {
             e.poisonDmgPerSec = 16;
           }
 
-          this.addFloatingText(e.x, e.y, Math.round(p.damage), p.isCrit ? "#ffaa00" : "#00f0ff");
+          // Prismatic Laser Refraction (Hyper Super Weapon)
+          if (p.isPrismatic && !p.hasRefracted) {
+            p.hasRefracted = true;
+            const refractAngles = [-0.55, 0, 0.55];
+            refractAngles.forEach(offset => {
+              const ra = p.angle + offset;
+              this.projectiles.push(new window.Projectile(
+                e.x, e.y,
+                Math.cos(ra) * 720,
+                Math.sin(ra) * 720,
+                {
+                  radius: 4.5,
+                  damage: p.damage * 0.7,
+                  isLaser: true,
+                  isCrit: p.isCrit,
+                  pierce: 3,
+                  poison: p.poison,
+                  length: 26
+                }
+              ));
+            });
+            if (p.isCrit) {
+              player.hp = Math.min(player.maxHp, player.hp + 2.0);
+            }
+          }
+
+          this.addFloatingText(e.x, e.y, Math.round(dmg), p.isCrit ? "#ffaa00" : (p.isPrismatic ? "#ff00dd" : "#00f0ff"));
 
           e.x += (p.vx / 650) * 14;
           e.y += (p.vy / 650) * 14;
@@ -353,10 +425,17 @@ class GameEngine {
         const d = Math.hypot(sw.x - e.x, sw.y - e.y);
         if (Math.abs(d - sw.radius) < sw.thickness + e.radius) {
           sw.hitList.add(e);
-          e.hp -= sw.damage;
+          let dmg = sw.damage;
+          if (e.isHardened) dmg *= 0.25;
+          e.hp -= dmg;
           e.hitFlashTimer = 0.12;
-          this.addFloatingText(e.x, e.y, Math.round(sw.damage), "#ff0077");
-          if (d > 0) {
+          this.addFloatingText(e.x, e.y, Math.round(dmg), sw.isSingularity ? "#ff00ff" : "#ff0077");
+
+          // Gravitational pull for singularity vortex
+          if (sw.isSingularity && d > 0 && !e.isBoss) {
+            e.x += ((sw.x - e.x) / d) * 180;
+            e.y += ((sw.y - e.y) / d) * 180;
+          } else if (d > 0) {
             e.x += ((e.x - sw.x) / d) * 70;
             e.y += ((e.y - sw.y) / d) * 70;
           }
@@ -369,9 +448,14 @@ class GameEngine {
       for (let e of this.enemies) {
         const d = Math.hypot(pool.x - e.x, pool.y - e.y);
         if (d < pool.radius + e.radius) {
-          e.hp -= pool.damagePerSec * dt;
+          const mult = pool.isHyper ? 2.5 : 1.0;
+          e.hp -= pool.damagePerSec * mult * dt;
           e.poisonDuration = 1.0;
-          e.poisonDmgPerSec = 12;
+          e.poisonDmgPerSec = pool.isHyper ? 30 : 12;
+          if (pool.isHyper && !e.isBoss) {
+            e.vx *= 0.55;
+            e.vy *= 0.55;
+          }
         }
       }
     });
@@ -458,7 +542,7 @@ class GameEngine {
     this.atpOrbs.push(new window.AtpOrb(enemy.x, enemy.y, enemy.atpValue));
 
     if (this.player.stats.droneSpawnChance > 0 && Math.random() < this.player.stats.droneSpawnChance) {
-      this.player.drones.push(new window.FriendlyDrone(enemy.x, enemy.y));
+      this.player.drones.push(new window.FriendlyDrone(enemy.x, enemy.y, this.player.stats.hasParasiticHive));
     }
 
     if (enemy.canSplit) {
@@ -478,16 +562,22 @@ class GameEngine {
       }
     }
 
+    if (enemy.type === "macrophage" && this.acidPools) {
+      // Releasing digestive enzymes on death
+      this.acidPools.push(new window.AcidPool(enemy.x, enemy.y, 40, 25, 3.0));
+    }
+
     if (enemy.isBoss) {
       this.bossesDefeated++;
       this.activeBoss = null;
       this.renderer.addShake(22);
       document.getElementById("boss-bar-panel").style.display = "none";
-      for (let i = 0; i < 10; i++) {
+      const orbCount = 10 + (enemy.bossType === "behemoth" ? 14 : (enemy.bossType === "rotifer" ? 9 : 5));
+      for (let i = 0; i < orbCount; i++) {
         this.atpOrbs.push(new window.AtpOrb(
-          enemy.x + (Math.random() - 0.5) * 100,
-          enemy.y + (Math.random() - 0.5) * 100,
-          65
+          enemy.x + (Math.random() - 0.5) * 120,
+          enemy.y + (Math.random() - 0.5) * 120,
+          75
         ));
       }
     }
@@ -495,6 +585,11 @@ class GameEngine {
 
   triggerLevelUp() {
     this.state = "LEVEL_UP";
+    this.renderMutationDeck();
+    document.getElementById("modal-mutation").classList.remove("hidden");
+  }
+
+  renderMutationDeck() {
     const options = window.upgradeManager.getRandomOptions(3);
     const deck = document.getElementById("cards-deck");
     deck.innerHTML = "";
@@ -502,10 +597,12 @@ class GameEngine {
     options.forEach(opt => {
       const card = document.createElement("div");
       card.className = "mutation-card tier-" + opt.tier;
+      const isHyper = opt.tier === "hyper";
       card.innerHTML = `
         <div class="card-icon">${opt.icon}</div>
         <div class="card-title">${opt.name}</div>
-        <div class="card-tier">${opt.tier} (RANK ${opt.rank + 1}/${opt.maxRank})</div>
+        <div class="card-tier">${isHyper ? "⚡ 究极基因超武 ⚡" : opt.tier.toUpperCase() + " (RANK " + (opt.rank + 1) + "/" + opt.maxRank + ")"}</div>
+        ${opt.reqDesc ? `<div class="card-req">${opt.reqDesc}</div>` : ""}
         <div class="card-desc">${opt.desc}</div>
       `;
       card.addEventListener("click", () => {
@@ -517,7 +614,24 @@ class GameEngine {
       deck.appendChild(card);
     });
 
-    document.getElementById("modal-mutation").classList.remove("hidden");
+    // Reroll Button Container
+    let rerollBtn = document.getElementById("btn-reroll");
+    if (!rerollBtn) {
+      rerollBtn = document.createElement("button");
+      rerollBtn.id = "btn-reroll";
+      rerollBtn.className = "btn-reroll";
+      const modal = document.querySelector("#modal-mutation .modal-card");
+      modal.appendChild(rerollBtn);
+    }
+    
+    rerollBtn.innerText = `🔄 基因重排 (REROLL ${window.upgradeManager.rerollCount}/${window.upgradeManager.maxRerolls})`;
+    rerollBtn.disabled = window.upgradeManager.rerollCount <= 0;
+    rerollBtn.onclick = () => {
+      if (window.upgradeManager.rerollCount > 0) {
+        window.upgradeManager.rerollCount--;
+        this.renderMutationDeck();
+      }
+    };
   }
 
   addFloatingText(x, y, text, color = "#00f0ff") {

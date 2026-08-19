@@ -320,15 +320,32 @@ class GameRenderer {
     ctx.lineWidth = sw.thickness * (1 - sw.radius / sw.maxRadius);
     const alpha = (1 - sw.radius / sw.maxRadius) * 0.9;
     
-    if (sw.isSupernova) {
+    if (sw.isSingularity) {
+      // Swirling Gravitational Singularity
+      ctx.strokeStyle = "rgba(255, 0, 255, " + alpha + ")";
+      ctx.shadowColor = "#ff00ff";
+      ctx.shadowBlur = 30;
+      ctx.stroke();
+
+      // Inner Event Horizon Vortex
+      ctx.beginPath();
+      ctx.arc(sw.x, sw.y, Math.max(5, sw.radius * 0.4), 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(20, 0, 40, " + (alpha * 0.8) + ")";
+      ctx.fill();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = "rgba(0, 240, 255, " + alpha + ")";
+      ctx.stroke();
+    } else if (sw.isSupernova) {
       ctx.strokeStyle = "rgba(255, 0, 119, " + alpha + ")";
       ctx.shadowColor = "#ff0077";
+      ctx.shadowBlur = 20;
+      ctx.stroke();
     } else {
       ctx.strokeStyle = "rgba(0, 240, 255, " + alpha + ")";
       ctx.shadowColor = "#00f0ff";
+      ctx.shadowBlur = 20;
+      ctx.stroke();
     }
-    ctx.shadowBlur = 20;
-    ctx.stroke();
     ctx.restore();
   }
 
@@ -338,21 +355,28 @@ class GameRenderer {
     ctx.save();
     ctx.beginPath();
     ctx.arc(pool.x, pool.y, pool.radius, 0, Math.PI * 2);
-    const alpha = Math.min(0.6, pool.duration / pool.maxDuration);
-    ctx.fillStyle = "rgba(0, 255, 128, " + alpha + ")";
-    ctx.shadowColor = "#00ff80";
-    ctx.shadowBlur = 15;
+    const alpha = Math.min(0.7, pool.duration / pool.maxDuration);
+    
+    if (pool.isHyper) {
+      ctx.fillStyle = "rgba(200, 255, 0, " + alpha + ")";
+      ctx.shadowColor = "#ccff00";
+      ctx.shadowBlur = 22;
+    } else {
+      ctx.fillStyle = "rgba(0, 255, 128, " + alpha + ")";
+      ctx.shadowColor = "#00ff80";
+      ctx.shadowBlur = 15;
+    }
     ctx.fill();
 
     // Bubbles
-    const bubbleCount = 4;
-    ctx.fillStyle = "rgba(200, 255, 200, " + (alpha + 0.2) + ")";
+    const bubbleCount = pool.isHyper ? 6 : 4;
+    ctx.fillStyle = pool.isHyper ? "rgba(255, 255, 180, " + (alpha + 0.3) + ")" : "rgba(200, 255, 200, " + (alpha + 0.2) + ")";
     for (let i = 0; i < bubbleCount; i++) {
-      const bTime = (time * 2 + i * 1.3) % 1.5;
-      const bR = (bTime / 1.5) * (pool.radius * 0.35);
-      const angle = i * (Math.PI * 2 / bubbleCount) + time;
-      const bx = pool.x + Math.cos(angle) * (pool.radius * 0.4);
-      const by = pool.y + Math.sin(angle) * (pool.radius * 0.4);
+      const bTime = (time * 3 + i * 1.2) % 1.4;
+      const bR = (bTime / 1.4) * (pool.radius * 0.35);
+      const angle = i * (Math.PI * 2 / bubbleCount) + time * 1.5;
+      const bx = pool.x + Math.cos(angle) * (pool.radius * 0.45);
+      const by = pool.y + Math.sin(angle) * (pool.radius * 0.45);
       ctx.beginPath();
       ctx.arc(bx, by, Math.max(1, bR), 0, Math.PI * 2);
       ctx.fill();
@@ -481,34 +505,373 @@ class GameRenderer {
       ctx.strokeStyle = "#ffa3cc";
       ctx.stroke();
 
-    } else if (enemy.isBoss) {
-      // Boss: Colony Queen or Apex Phage
-      ctx.rotate(time * 0.8);
-      // Outer Carapace
+    } else if (enemy.type === "flagellate") {
+      // 鞭毛虫: Serpentine Swimming Flagellate with Luminous Tail
+      ctx.rotate(enemy.angle || 0);
       ctx.beginPath();
-      const petals = enemy.bossType === "queen" ? 8 : 6;
-      for (let i = 0; i < petals; i++) {
-        const a = (i * Math.PI * 2) / petals;
-        const pr = r * (1 + 0.25 * Math.sin(time * 3 + i));
+      ctx.ellipse(0, 0, r * 1.35, r * 0.7, 0, 0, Math.PI * 2);
+      ctx.fillStyle = isHit ? "#ffffff" : "#00f0aa";
+      ctx.shadowColor = "#00f0aa";
+      ctx.shadowBlur = 14;
+      ctx.fill();
+      ctx.lineWidth = 2.2;
+      ctx.strokeStyle = "#80ffd5";
+      ctx.stroke();
+
+      // Long Dual Flagella Tail
+      ctx.beginPath();
+      ctx.moveTo(-r * 1.3, 0);
+      const w1 = Math.sin(time * 16) * 12;
+      const w2 = Math.cos(time * 14) * 10;
+      ctx.quadraticCurveTo(-r * 2.5, w1, -r * 3.8, -w1 * 0.8);
+      ctx.moveTo(-r * 1.3, 0);
+      ctx.quadraticCurveTo(-r * 2.2, w2, -r * 3.4, -w2 * 0.8);
+      ctx.strokeStyle = "rgba(0, 240, 170, 0.85)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Glowing Nucleus
+      ctx.beginPath();
+      ctx.arc(r * 0.3, 0, r * 0.28, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+
+    } else if (enemy.type === "ciliate") {
+      // 草履虫: Vibrating Cilia Perimeter & Slipper Body
+      ctx.rotate(enemy.angle || 0);
+      
+      // Jitter if charging leap
+      if (enemy.isChargingLeap) {
+        ctx.translate((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4);
+      }
+
+      // Slipper Outer Body
+      ctx.beginPath();
+      ctx.ellipse(0, 0, r * 1.3, r * 0.8, 0, 0, Math.PI * 2);
+      ctx.fillStyle = isHit ? "#ffffff" : (enemy.isChargingLeap ? "#00ffff" : "#00bbff");
+      ctx.shadowColor = "#00e1ff";
+      ctx.shadowBlur = enemy.isChargingLeap ? 22 : 12;
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#a3eeff";
+      ctx.stroke();
+
+      // Vibrating Cilia Hairs
+      const hairCount = 14;
+      ctx.strokeStyle = "rgba(160, 240, 255, 0.85)";
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < hairCount; i++) {
+        const a = (i * Math.PI * 2) / hairCount;
+        const hx = Math.cos(a) * (r * 1.25);
+        const hy = Math.sin(a) * (r * 0.8);
+        const hLen = 5 + Math.sin(time * 24 + i) * 3;
+        ctx.beginPath();
+        ctx.moveTo(hx, hy);
+        ctx.lineTo(hx + Math.cos(a) * hLen, hy + Math.sin(a) * hLen);
+        ctx.stroke();
+      }
+
+      // Contractile Vacuoles (伸缩泡)
+      ctx.beginPath();
+      ctx.arc(-r * 0.4, 0, r * 0.22, 0, Math.PI * 2);
+      ctx.arc(r * 0.4, 0, r * 0.22, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+      ctx.fill();
+
+    } else if (enemy.type === "tardigrade") {
+      // 水熊虫: Segmented Armored Body with Micro-claws & Cryptobiosis Shield
+      ctx.rotate(enemy.angle || 0);
+
+      if (enemy.isHardened) {
+        // Cryptobiosis Crystalline Hardened State
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 1.05, 0, Math.PI * 2);
+        ctx.fillStyle = isHit ? "#ffffff" : "#d49b00";
+        ctx.shadowColor = "#ffcc00";
+        ctx.shadowBlur = 24;
+        ctx.fill();
+
+        // Hexagonal Shield Crystalline Overlay
+        ctx.beginPath();
+        const sides = 6;
+        for (let i = 0; i < sides; i++) {
+          const a = (i * Math.PI * 2) / sides + time * 2;
+          const hx = Math.cos(a) * (r * 1.35);
+          const hy = Math.sin(a) * (r * 1.35);
+          if (i === 0) ctx.moveTo(hx, hy);
+          else ctx.lineTo(hx, hy);
+        }
+        ctx.closePath();
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = "rgba(255, 220, 100, 0.9)";
+        ctx.stroke();
+
+      } else {
+        // 3 Segmented Body Overlaps
+        for (let s = -1; s <= 1; s++) {
+          ctx.beginPath();
+          ctx.ellipse(s * (r * 0.45), 0, r * 0.55, r * 0.75, 0, 0, Math.PI * 2);
+          ctx.fillStyle = isHit ? "#ffffff" : "#c28800";
+          ctx.fill();
+          ctx.lineWidth = 1.8;
+          ctx.strokeStyle = "#ffd166";
+          ctx.stroke();
+        }
+
+        // Stubby Micro-legs
+        ctx.fillStyle = "#e0a300";
+        for (let s = -1; s <= 1; s++) {
+          const legWiggle = Math.sin(time * 10 + s) * 3;
+          ctx.fillRect(s * (r * 0.45) - 3, -r * 0.95 + legWiggle, 6, 6);
+          ctx.fillRect(s * (r * 0.45) - 3, r * 0.75 - legWiggle, 6, 6);
+        }
+
+        // Armored Eyespots
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(r * 0.7, -r * 0.25, 2.5, 0, Math.PI * 2);
+        ctx.arc(r * 0.7, r * 0.25, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+    } else if (enemy.type === "macrophage") {
+      // 巨噬体: Amoeboid Hunter with Reaching Pseudopodia
+      ctx.rotate(enemy.angle || 0);
+
+      // Organic Pseudopod Membrane
+      ctx.beginPath();
+      const points = 10;
+      for (let i = 0; i < points; i++) {
+        const a = (i * Math.PI * 2) / points;
+        // Reach forward pseudopods in facing direction (around angle 0)
+        let forwardReach = 0;
+        if (Math.cos(a) > 0.3) {
+          forwardReach = Math.cos(a) * (r * 0.5) * (0.8 + 0.4 * Math.sin(time * 6 + i));
+        }
+        const w = Math.sin(time * 4 + i * 2) * (r * 0.18) + forwardReach;
+        const pr = r + w;
         const px = Math.cos(a) * pr;
         const py = Math.sin(a) * pr;
         if (i === 0) ctx.moveTo(px, py);
         else ctx.lineTo(px, py);
       }
       ctx.closePath();
-      ctx.fillStyle = isHit ? "#ffffff" : "rgba(180, 0, 50, 0.9)";
-      ctx.shadowColor = "#ff0055";
-      ctx.shadowBlur = 28;
+      ctx.fillStyle = isHit ? "#ffffff" : "#800040";
+      ctx.shadowColor = "#ff0066";
+      ctx.shadowBlur = 16;
       ctx.fill();
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = "#ff6699";
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = "#ff4d94";
       ctx.stroke();
 
-      // Pulsing Core
-      ctx.beginPath();
-      ctx.arc(0, 0, r * 0.45, 0, Math.PI * 2);
-      ctx.fillStyle = isHit ? "#ffffff" : "#ff0055";
-      ctx.fill();
+      // Glowing Digestive Lysosomes
+      const lysCount = 4;
+      for (let i = 0; i < lysCount; i++) {
+        const la = time * 2 + (i * Math.PI * 2) / lysCount;
+        const lx = Math.cos(la) * (r * 0.4);
+        const ly = Math.sin(la) * (r * 0.4);
+        ctx.beginPath();
+        ctx.arc(lx, ly, 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = i % 2 === 0 ? "#ff0055" : "#00ffff";
+        ctx.fill();
+      }
+
+    } else if (enemy.isBoss) {
+      // Boss Renders: Queen, Apex, Hydra, Rotifer, Behemoth
+      if (enemy.bossType === "queen") {
+        // Colony Queen: Crown & Petals Carapace
+        ctx.rotate(time * 0.8);
+        ctx.beginPath();
+        const petals = 8;
+        for (let i = 0; i < petals; i++) {
+          const a = (i * Math.PI * 2) / petals;
+          const pr = r * (1 + 0.25 * Math.sin(time * 3 + i));
+          const px = Math.cos(a) * pr;
+          const py = Math.sin(a) * pr;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fillStyle = isHit ? "#ffffff" : "rgba(190, 0, 60, 0.9)";
+        ctx.shadowColor = "#ff0055";
+        ctx.shadowBlur = 26;
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "#ff6699";
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.45, 0, Math.PI * 2);
+        ctx.fillStyle = isHit ? "#ffffff" : "#ff0055";
+        ctx.fill();
+
+      } else if (enemy.bossType === "apex") {
+        // Apex Phage: Crystalline Multi-Spike Head
+        ctx.rotate(time * 1.4);
+        ctx.beginPath();
+        const spikes = 6;
+        for (let i = 0; i < spikes; i++) {
+          const a = (i * Math.PI * 2) / spikes;
+          const outerR = r * 1.35;
+          const innerR = r * 0.75;
+          const midA = a + Math.PI / spikes;
+          const ox = Math.cos(a) * outerR;
+          const oy = Math.sin(a) * outerR;
+          const ix = Math.cos(midA) * innerR;
+          const iy = Math.sin(midA) * innerR;
+          if (i === 0) ctx.moveTo(ox, oy);
+          else ctx.lineTo(ox, oy);
+          ctx.lineTo(ix, iy);
+        }
+        ctx.closePath();
+        ctx.fillStyle = isHit ? "#ffffff" : "#e67300";
+        ctx.shadowColor = "#ffaa00";
+        ctx.shadowBlur = 26;
+        ctx.fill();
+        ctx.lineWidth = 3.5;
+        ctx.strokeStyle = "#ffea80";
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.38, 0, Math.PI * 2);
+        ctx.fillStyle = isHit ? "#ffffff" : "#ffffff";
+        ctx.fill();
+
+      } else if (enemy.bossType === "hydra") {
+        // Dread Hydra: Central Core + 4-6 Undulating Head Tentacles
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.65, 0, Math.PI * 2);
+        ctx.fillStyle = isHit ? "#ffffff" : "#008f5d";
+        ctx.shadowColor = "#00ff99";
+        ctx.shadowBlur = 24;
+        ctx.fill();
+        ctx.lineWidth = 3.5;
+        ctx.strokeStyle = "#66ffcc";
+        ctx.stroke();
+
+        // 4 Orbiting Stalks and Head Nodes
+        const tCount = enemy.tentacleCount || 4;
+        const timeNow = time * 2.0;
+        for (let i = 0; i < tCount; i++) {
+          const tAngle = timeNow + (i * Math.PI * 2) / tCount;
+          const tx = Math.cos(tAngle) * 80;
+          const ty = Math.sin(tAngle) * 80;
+          
+          // Curved Stalk
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          const midWiggleX = Math.cos(tAngle + 0.4) * 45;
+          const midWiggleY = Math.sin(tAngle + 0.4) * 45;
+          ctx.quadraticCurveTo(midWiggleX, midWiggleY, tx, ty);
+          ctx.strokeStyle = "rgba(0, 255, 150, 0.8)";
+          ctx.lineWidth = 4;
+          ctx.stroke();
+
+          // Tentacle Head
+          ctx.beginPath();
+          ctx.arc(tx, ty, 14, 0, Math.PI * 2);
+          ctx.fillStyle = isHit ? "#ffffff" : "#00ff99";
+          ctx.shadowColor = "#00ffaa";
+          ctx.shadowBlur = 14;
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = "#ffffff";
+          ctx.stroke();
+
+          // Head Core Eye
+          ctx.beginPath();
+          ctx.arc(tx, ty, 5, 0, Math.PI * 2);
+          ctx.fillStyle = "#ffffff";
+          ctx.fill();
+        }
+
+      } else if (enemy.bossType === "rotifer") {
+        // Vortex Rotifer: Twin Spinning Corona Gears + Whirlpool Field
+        ctx.save();
+        ctx.rotate(time * 3.5);
+        // Outer Gear Teeth
+        ctx.beginPath();
+        const teeth = 12;
+        for (let i = 0; i < teeth; i++) {
+          const a = (i * Math.PI * 2) / teeth;
+          const tr = r * (i % 2 === 0 ? 1.25 : 0.85);
+          const gx = Math.cos(a) * tr;
+          const gy = Math.sin(a) * tr;
+          if (i === 0) ctx.moveTo(gx, gy);
+          else ctx.lineTo(gx, gy);
+        }
+        ctx.closePath();
+        ctx.fillStyle = isHit ? "#ffffff" : "rgba(100, 0, 180, 0.85)";
+        ctx.shadowColor = "#b300ff";
+        ctx.shadowBlur = 24;
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#e085ff";
+        ctx.stroke();
+        ctx.restore();
+
+        // Inner Counter-Rotating Crown
+        ctx.save();
+        ctx.rotate(-time * 4.0);
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.55, 0, Math.PI * 2);
+        ctx.fillStyle = isHit ? "#ffffff" : "#d97706";
+        ctx.shadowColor = "#f59e0b";
+        ctx.shadowBlur = 18;
+        ctx.fill();
+        ctx.restore();
+
+        // Central Mastax Maw
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.28, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+
+      } else if (enemy.bossType === "behemoth") {
+        // Cytotoxic Behemoth: Massive Faceted Virus with Orbiting Poison Nodes
+        const isFrenzy = enemy.hp < enemy.maxHp * 0.35;
+        ctx.rotate(time * (isFrenzy ? 2.5 : 1.2));
+
+        // Faceted Octagonal Capsid
+        ctx.beginPath();
+        const sides = 8;
+        for (let i = 0; i < sides; i++) {
+          const a = (i * Math.PI * 2) / sides;
+          const cr = r * (i % 2 === 0 ? 1.2 : 0.9);
+          const cx = Math.cos(a) * cr;
+          const cy = Math.sin(a) * cr;
+          if (i === 0) ctx.moveTo(cx, cy);
+          else ctx.lineTo(cx, cy);
+        }
+        ctx.closePath();
+        ctx.fillStyle = isHit ? "#ffffff" : (isFrenzy ? "#b30000" : "#4a0072");
+        ctx.shadowColor = isFrenzy ? "#ff0033" : "#e000ff";
+        ctx.shadowBlur = 30;
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = isFrenzy ? "#ff6666" : "#ff80df";
+        ctx.stroke();
+
+        // 6 Orbiting Poison Satellites
+        const satCount = 6;
+        for (let i = 0; i < satCount; i++) {
+          const sa = -time * 2.2 + (i * Math.PI * 2) / satCount;
+          const sx = Math.cos(sa) * (r * 1.45);
+          const sy = Math.sin(sa) * (r * 1.45);
+          ctx.beginPath();
+          ctx.arc(sx, sy, 8, 0, Math.PI * 2);
+          ctx.fillStyle = "#00ffcc";
+          ctx.shadowColor = "#00ffcc";
+          ctx.shadowBlur = 10;
+          ctx.fill();
+        }
+
+        // Singularity Core
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.4, 0, Math.PI * 2);
+        ctx.fillStyle = isFrenzy ? "#ffffff" : "#ff0077";
+        ctx.fill();
+      }
     }
 
     // Mini Health Bar for large units & non-bosses
@@ -531,13 +894,38 @@ class GameRenderer {
     ctx.save();
     ctx.translate(p.x, p.y);
 
-    if (p.isLaser) {
+    if (p.isPrismatic) {
+      // Prismatic Rainbow Laser
+      ctx.rotate(p.angle);
+      ctx.beginPath();
+      const grad = ctx.createLinearGradient(-p.length / 2, 0, p.length / 2, 0);
+      grad.addColorStop(0, "#ff00aa");
+      grad.addColorStop(0.5, "#00f0ff");
+      grad.addColorStop(1, "#ffff00");
+      ctx.fillStyle = grad;
+      ctx.shadowColor = "#ff00ff";
+      ctx.shadowBlur = 18;
+      ctx.fillRect(-p.length / 2, -p.width * 0.7, p.length, p.width * 1.4);
+    } else if (p.isLaser) {
       ctx.rotate(p.angle);
       ctx.beginPath();
       ctx.fillStyle = "#00f0ff";
       ctx.shadowColor = "#00f0ff";
       ctx.shadowBlur = 14;
       ctx.fillRect(-p.length / 2, -p.width / 2, p.length, p.width);
+    } else if (p.isTeslaThorn) {
+      // Tesla Electric Thorn
+      ctx.rotate(p.angle);
+      ctx.beginPath();
+      ctx.moveTo(14, 0);
+      ctx.lineTo(-10, 4.5);
+      ctx.lineTo(-5, 0);
+      ctx.lineTo(-10, -4.5);
+      ctx.closePath();
+      ctx.fillStyle = "#00ffff";
+      ctx.shadowColor = "#b300ff";
+      ctx.shadowBlur = 16;
+      ctx.fill();
     } else if (p.isThorn) {
       ctx.rotate(p.angle);
       ctx.beginPath();
@@ -599,23 +987,52 @@ class GameRenderer {
     ctx.restore();
   }
 
-  // Draw Friendly Drones
+  // Draw Friendly Drones (Standard / Hive Wasp)
   drawDrone(drone, time) {
     const ctx = this.ctx;
     ctx.save();
     ctx.translate(drone.x, drone.y);
     ctx.rotate(drone.angle);
     
-    ctx.beginPath();
-    ctx.moveTo(10, 0);
-    ctx.lineTo(-7, 6);
-    ctx.lineTo(-3, 0);
-    ctx.lineTo(-7, -6);
-    ctx.closePath();
-    ctx.fillStyle = "#00ffaa";
-    ctx.shadowColor = "#00ffaa";
-    ctx.shadowBlur = 10;
-    ctx.fill();
+    if (drone.isHive) {
+      // Mutated Bio-Wasp
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 10, 6, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffd000";
+      ctx.shadowColor = "#ffbb00";
+      ctx.shadowBlur = 14;
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#402000";
+      ctx.stroke();
+
+      // Fluttering Wings
+      const wingFlutter = Math.sin(time * 30) * 8;
+      ctx.fillStyle = "rgba(0, 240, 255, 0.75)";
+      ctx.beginPath();
+      ctx.ellipse(0, -7, 6, Math.abs(wingFlutter), 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 7, 6, Math.abs(wingFlutter), 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Stinger
+      ctx.beginPath();
+      ctx.moveTo(-10, 0);
+      ctx.lineTo(-15, 0);
+      ctx.strokeStyle = "#ff0055";
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(10, 0);
+      ctx.lineTo(-7, 6);
+      ctx.lineTo(-3, 0);
+      ctx.lineTo(-7, -6);
+      ctx.closePath();
+      ctx.fillStyle = "#00ffaa";
+      ctx.shadowColor = "#00ffaa";
+      ctx.shadowBlur = 10;
+      ctx.fill();
+    }
     ctx.restore();
   }
 }
