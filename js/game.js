@@ -182,11 +182,18 @@ class GameEngine {
     const dt = Math.min(0.05, (currentTime - this.lastTime) / 1000);
     this.lastTime = currentTime;
 
-    if (this.state === "PLAYING") {
-      this.update(dt);
+    try {
+      if (this.state === "PLAYING") {
+        this.update(dt);
+      }
+
+      this.render(currentTime / 1000, dt);
+    } catch (err) {
+      // Never let a single-frame error kill the whole game loop
+      // (also keeps the error visible in WeChat vConsole)
+      console.error("[Mitosis Arena] frame error:", err);
     }
 
-    this.render(currentTime / 1000, dt);
     requestAnimationFrame((t) => this.loop(t));
   }
 
@@ -257,6 +264,10 @@ class GameEngine {
     if (pendingSpawns.length > 0) this.enemies.push(...pendingSpawns);
 
     this.projectiles = this.projectiles.filter(p => !p.update(dt));
+    // Hard safety cap (boss bullet storms): drop the oldest projectiles
+    if (this.projectiles.length > 700) {
+      this.projectiles.splice(0, this.projectiles.length - 700);
+    }
     this.shockwaves = this.shockwaves.filter(sw => !sw.update(dt));
     this.acidPools = this.acidPools.filter(pool => !pool.update(dt));
 
@@ -532,8 +543,10 @@ class GameEngine {
         for (let j = i + 1; j < player.cells.length; j++) {
           const c1 = player.cells[i];
           const c2 = player.cells[j];
-          const dist = Math.hypot(c1.x - c2.x, c1.y - c2.y);
-          if (dist < 420) {
+          // Squared-distance early out before the expensive per-enemy test
+          const dxW = c1.x - c2.x;
+          const dyW = c1.y - c2.y;
+          if (dxW * dxW + dyW * dyW < 420 * 420) {
             for (let e of this.enemies) {
               const dLine = this.distToSegment(e.x, e.y, c1.x, c1.y, c2.x, c2.y);
               if (dLine < e.radius + 6) {
@@ -706,6 +719,7 @@ class GameEngine {
   }
 
   addFloatingText(x, y, text, color = "#00f0ff") {
+    if (this.floatingTexts.length >= 80) return;
     this.floatingTexts.push({
       x: x + (Math.random() - 0.5) * 15,
       y: y - 10,
@@ -763,6 +777,10 @@ class GameEngine {
   }
 
   render(time, dt) {
+    // Adaptive quality: heavy effect load scales down expensive glow rendering
+    const load = this.enemies.length + this.projectiles.length + this.acidPools.length + this.shockwaves.length;
+    this.renderer.updateQuality(load);
+
     this.renderer.beginFrame();
 
     this.renderer.drawPetriDish(this.arenaRadius, time);

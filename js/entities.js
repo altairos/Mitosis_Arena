@@ -143,7 +143,7 @@ class FriendlyDrone {
       this.angle = Math.atan2(closest.y - this.y, closest.x - this.x);
       this.fireTimer += dt;
       const cd = this.isHive ? 0.16 : 0.24;
-      if (this.fireTimer >= cd) {
+      if (this.fireTimer >= cd && projectiles && projectiles.length < 500) {
         this.fireTimer = 0;
         const spd = 680;
         projectiles.push(new Projectile(
@@ -266,7 +266,9 @@ class PlayerGroup {
 
     const newCells = [];
     const isTesla = this.stats.hasTeslaPulsar;
-    const thornCount = isTesla ? 18 : 12;
+    let thornCount = isTesla ? 18 : 12;
+    // Bound projectile bursts when heavily split (32 cells x 18 thorns froze the frame)
+    if (this.cells.length > 8) thornCount = isTesla ? 8 : 6;
 
     // Each split adds one net cell; only split as many cells as the cap allows
     const splitCount = Math.min(this.cells.length, this.maxCellCap - this.cells.length);
@@ -461,15 +463,18 @@ class PlayerGroup {
       if (this.trailTimer >= 0.18 && isMoving) {
         this.trailTimer = 0;
         const isHyper = this.stats.hasHyperAcid;
-        this.cells.forEach(c => {
+        // One pool per tick behind the leading cell (not per cell) plus a
+        // global cap: per-cell pools flooded the field with 100+ pools
+        if (acidPools.length < 60) {
+          const leader = this.cells[0];
           acidPools.push(new AcidPool(
-            c.x, c.y, 
-            isHyper ? 36 : 22, 
-            isHyper ? 70 : 25, 
+            leader.x, leader.y,
+            isHyper ? 48 : 30,
+            isHyper ? 70 : 25,
             isHyper ? 4.5 : 2.5,
             isHyper
           ));
-        });
+        }
       }
     }
 
@@ -519,6 +524,8 @@ class PlayerGroup {
     this.fireTimer += dt;
     if (this.fireTimer >= currentCooldown) {
       this.fireTimer = 0;
+      // Soft projectile cap: skip the volley while the field is saturated
+      if (projectiles && projectiles.length >= 500) return;
 
       this.cells.forEach(cell => {
         let targetX = targetWorldPoint.x;

@@ -8,6 +8,7 @@ class GameRenderer {
     this.width = window.innerWidth;
     this.height = window.innerHeight;
     this.dpr = 1;
+    this.glowScale = 1;
     this.resize();
 
     // Camera
@@ -43,6 +44,12 @@ class GameRenderer {
     this.dpr = Math.min(2, window.devicePixelRatio || 1);
     this.canvas.width = Math.round(this.width * this.dpr);
     this.canvas.height = Math.round(this.height * this.dpr);
+  }
+
+  updateQuality(entityLoad) {
+    // Adaptive glow: shadowBlur is by far the most expensive canvas op;
+    // scale it down (and finally switch it off) once the field fills up
+    this.glowScale = entityLoad < 160 ? 1 : (entityLoad < 320 ? 0.4 : 0);
   }
 
   addShake(amount) {
@@ -228,7 +235,7 @@ class GameRenderer {
 
     ctx.fillStyle = grad;
     ctx.shadowColor = isLeader ? "#00f0ff" : "#00ffaa";
-    ctx.shadowBlur = 18;
+    ctx.shadowBlur = this.glowScale * 18;
     ctx.fill();
 
     // Membrane outer border
@@ -280,11 +287,13 @@ class GameRenderer {
     ctx.save();
     ctx.strokeStyle = "#00f0ff";
     ctx.shadowColor = "#00f0ff";
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = this.glowScale * 12;
     ctx.lineWidth = 2;
 
     for (let i = 0; i < cells.length; i++) {
-      for (let j = i + 1; j < cells.length; j++) {
+      // With many cells only link neighbours, avoiding O(n²) line draws
+      const jEnd = cells.length > 12 ? i + 2 : cells.length;
+      for (let j = i + 1; j < jEnd; j++) {
         const c1 = cells[i];
         const c2 = cells[j];
         const dist = Math.hypot(c1.x - c2.x, c1.y - c2.y);
@@ -330,7 +339,7 @@ class GameRenderer {
       // Swirling Gravitational Singularity
       ctx.strokeStyle = "rgba(255, 0, 255, " + alpha + ")";
       ctx.shadowColor = "#ff00ff";
-      ctx.shadowBlur = 30;
+      ctx.shadowBlur = this.glowScale * 30;
       ctx.stroke();
 
       // Inner Event Horizon Vortex
@@ -344,12 +353,12 @@ class GameRenderer {
     } else if (sw.isSupernova) {
       ctx.strokeStyle = "rgba(255, 0, 119, " + alpha + ")";
       ctx.shadowColor = "#ff0077";
-      ctx.shadowBlur = 20;
+      ctx.shadowBlur = this.glowScale * 20;
       ctx.stroke();
     } else {
       ctx.strokeStyle = "rgba(0, 240, 255, " + alpha + ")";
       ctx.shadowColor = "#00f0ff";
-      ctx.shadowBlur = 20;
+      ctx.shadowBlur = this.glowScale * 20;
       ctx.stroke();
     }
     ctx.restore();
@@ -366,20 +375,20 @@ class GameRenderer {
     if (pool.isEnemy) {
       ctx.fillStyle = "rgba(255, 70, 100, " + alpha + ")";
       ctx.shadowColor = "#ff3366";
-      ctx.shadowBlur = 16;
+      ctx.shadowBlur = this.glowScale * 16;
     } else if (pool.isHyper) {
       ctx.fillStyle = "rgba(200, 255, 0, " + alpha + ")";
       ctx.shadowColor = "#ccff00";
-      ctx.shadowBlur = 22;
+      ctx.shadowBlur = this.glowScale * 22;
     } else {
       ctx.fillStyle = "rgba(0, 255, 128, " + alpha + ")";
       ctx.shadowColor = "#00ff80";
-      ctx.shadowBlur = 15;
+      ctx.shadowBlur = this.glowScale * 15;
     }
     ctx.fill();
 
     // Bubbles
-    const bubbleCount = pool.isHyper ? 6 : 4;
+    const bubbleCount = this.glowScale === 0 ? 0 : (pool.isHyper ? 6 : 4);
     ctx.fillStyle = pool.isHyper ? "rgba(255, 255, 180, " + (alpha + 0.3) + ")" : "rgba(200, 255, 200, " + (alpha + 0.2) + ")";
     for (let i = 0; i < bubbleCount; i++) {
       const bTime = (time * 3 + i * 1.2) % 1.4;
@@ -406,7 +415,7 @@ class GameRenderer {
     // Flash white on hit
     if (isHit) {
       ctx.shadowColor = "#ffffff";
-      ctx.shadowBlur = 20;
+      ctx.shadowBlur = this.glowScale * 20;
     }
 
     if (enemy.type === "bacterium") {
@@ -416,7 +425,7 @@ class GameRenderer {
       ctx.ellipse(0, 0, r * 1.4, r * 0.75, 0, 0, Math.PI * 2);
       ctx.fillStyle = isHit ? "#ffffff" : "#ff3366";
       ctx.shadowColor = "#ff0055";
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = this.glowScale * 10;
       ctx.fill();
       ctx.lineWidth = 2;
       ctx.strokeStyle = "#ffaac4";
@@ -447,7 +456,7 @@ class GameRenderer {
       ctx.closePath();
       ctx.fillStyle = isHit ? "#ffffff" : "#ffaa00";
       ctx.shadowColor = "#ffaa00";
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = this.glowScale * 12;
       ctx.fill();
       ctx.strokeStyle = "#fff2a8";
       ctx.stroke();
@@ -474,7 +483,7 @@ class GameRenderer {
       ctx.arc(0, 0, r, 0, Math.PI * 2);
       ctx.fillStyle = isHit ? "#ffffff" : "#9900ff";
       ctx.shadowColor = "#cc00ff";
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = this.glowScale * 12;
       ctx.fill();
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = "#e6a8ff";
@@ -487,7 +496,7 @@ class GameRenderer {
       ctx.arc(0, 0, r * pulse, 0, Math.PI * 2);
       ctx.fillStyle = isHit ? "#ffffff" : "#00ddaa";
       ctx.shadowColor = "#00ffaa";
-      ctx.shadowBlur = 14;
+      ctx.shadowBlur = this.glowScale * 14;
       ctx.fill();
       ctx.lineWidth = 2;
       ctx.strokeStyle = "#ffffff";
@@ -509,7 +518,7 @@ class GameRenderer {
       ctx.closePath();
       ctx.fillStyle = isHit ? "#ffffff" : "#e6005c";
       ctx.shadowColor = "#ff0077";
-      ctx.shadowBlur = 18;
+      ctx.shadowBlur = this.glowScale * 18;
       ctx.fill();
       ctx.lineWidth = 3;
       ctx.strokeStyle = "#ffa3cc";
@@ -522,7 +531,7 @@ class GameRenderer {
       ctx.ellipse(0, 0, r * 1.35, r * 0.7, 0, 0, Math.PI * 2);
       ctx.fillStyle = isHit ? "#ffffff" : "#00f0aa";
       ctx.shadowColor = "#00f0aa";
-      ctx.shadowBlur = 14;
+      ctx.shadowBlur = this.glowScale * 14;
       ctx.fill();
       ctx.lineWidth = 2.2;
       ctx.strokeStyle = "#80ffd5";
@@ -560,7 +569,7 @@ class GameRenderer {
       ctx.ellipse(0, 0, r * 1.3, r * 0.8, 0, 0, Math.PI * 2);
       ctx.fillStyle = isHit ? "#ffffff" : (enemy.isChargingLeap ? "#00ffff" : "#00bbff");
       ctx.shadowColor = "#00e1ff";
-      ctx.shadowBlur = enemy.isChargingLeap ? 22 : 12;
+      ctx.shadowBlur = this.glowScale * (enemy.isChargingLeap ? 22 : 12);
       ctx.fill();
       ctx.lineWidth = 2;
       ctx.strokeStyle = "#a3eeff";
@@ -598,7 +607,7 @@ class GameRenderer {
         ctx.arc(0, 0, r * 1.05, 0, Math.PI * 2);
         ctx.fillStyle = isHit ? "#ffffff" : "#d49b00";
         ctx.shadowColor = "#ffcc00";
-        ctx.shadowBlur = 24;
+        ctx.shadowBlur = this.glowScale * 24;
         ctx.fill();
 
         // Hexagonal Shield Crystalline Overlay
@@ -668,7 +677,7 @@ class GameRenderer {
       ctx.closePath();
       ctx.fillStyle = isHit ? "#ffffff" : "#800040";
       ctx.shadowColor = "#ff0066";
-      ctx.shadowBlur = 16;
+      ctx.shadowBlur = this.glowScale * 16;
       ctx.fill();
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = "#ff4d94";
@@ -704,7 +713,7 @@ class GameRenderer {
         ctx.closePath();
         ctx.fillStyle = isHit ? "#ffffff" : "rgba(190, 0, 60, 0.9)";
         ctx.shadowColor = "#ff0055";
-        ctx.shadowBlur = 26;
+        ctx.shadowBlur = this.glowScale * 26;
         ctx.fill();
         ctx.lineWidth = 4;
         ctx.strokeStyle = "#ff6699";
@@ -736,7 +745,7 @@ class GameRenderer {
         ctx.closePath();
         ctx.fillStyle = isHit ? "#ffffff" : "#e67300";
         ctx.shadowColor = "#ffaa00";
-        ctx.shadowBlur = 26;
+        ctx.shadowBlur = this.glowScale * 26;
         ctx.fill();
         ctx.lineWidth = 3.5;
         ctx.strokeStyle = "#ffea80";
@@ -753,7 +762,7 @@ class GameRenderer {
         ctx.arc(0, 0, r * 0.65, 0, Math.PI * 2);
         ctx.fillStyle = isHit ? "#ffffff" : "#008f5d";
         ctx.shadowColor = "#00ff99";
-        ctx.shadowBlur = 24;
+        ctx.shadowBlur = this.glowScale * 24;
         ctx.fill();
         ctx.lineWidth = 3.5;
         ctx.strokeStyle = "#66ffcc";
@@ -782,7 +791,7 @@ class GameRenderer {
           ctx.arc(tx, ty, 14, 0, Math.PI * 2);
           ctx.fillStyle = isHit ? "#ffffff" : "#00ff99";
           ctx.shadowColor = "#00ffaa";
-          ctx.shadowBlur = 14;
+          ctx.shadowBlur = this.glowScale * 14;
           ctx.fill();
           ctx.lineWidth = 2;
           ctx.strokeStyle = "#ffffff";
@@ -813,7 +822,7 @@ class GameRenderer {
         ctx.closePath();
         ctx.fillStyle = isHit ? "#ffffff" : "rgba(100, 0, 180, 0.85)";
         ctx.shadowColor = "#b300ff";
-        ctx.shadowBlur = 24;
+        ctx.shadowBlur = this.glowScale * 24;
         ctx.fill();
         ctx.lineWidth = 3;
         ctx.strokeStyle = "#e085ff";
@@ -827,7 +836,7 @@ class GameRenderer {
         ctx.arc(0, 0, r * 0.55, 0, Math.PI * 2);
         ctx.fillStyle = isHit ? "#ffffff" : "#d97706";
         ctx.shadowColor = "#f59e0b";
-        ctx.shadowBlur = 18;
+        ctx.shadowBlur = this.glowScale * 18;
         ctx.fill();
         ctx.restore();
 
@@ -856,7 +865,7 @@ class GameRenderer {
         ctx.closePath();
         ctx.fillStyle = isHit ? "#ffffff" : (isFrenzy ? "#b30000" : "#4a0072");
         ctx.shadowColor = isFrenzy ? "#ff0033" : "#e000ff";
-        ctx.shadowBlur = 30;
+        ctx.shadowBlur = this.glowScale * 30;
         ctx.fill();
         ctx.lineWidth = 4;
         ctx.strokeStyle = isFrenzy ? "#ff6666" : "#ff80df";
@@ -872,7 +881,7 @@ class GameRenderer {
           ctx.arc(sx, sy, 8, 0, Math.PI * 2);
           ctx.fillStyle = "#00ffcc";
           ctx.shadowColor = "#00ffcc";
-          ctx.shadowBlur = 10;
+          ctx.shadowBlur = this.glowScale * 10;
           ctx.fill();
         }
 
@@ -914,14 +923,14 @@ class GameRenderer {
       grad.addColorStop(1, "#ffff00");
       ctx.fillStyle = grad;
       ctx.shadowColor = "#ff00ff";
-      ctx.shadowBlur = 18;
+      ctx.shadowBlur = this.glowScale * 18;
       ctx.fillRect(-p.length / 2, -p.width * 0.7, p.length, p.width * 1.4);
     } else if (p.isLaser) {
       ctx.rotate(p.angle);
       ctx.beginPath();
       ctx.fillStyle = "#00f0ff";
       ctx.shadowColor = "#00f0ff";
-      ctx.shadowBlur = 14;
+      ctx.shadowBlur = this.glowScale * 14;
       ctx.fillRect(-p.length / 2, -p.width / 2, p.length, p.width);
     } else if (p.isTeslaThorn) {
       // Tesla Electric Thorn
@@ -934,7 +943,7 @@ class GameRenderer {
       ctx.closePath();
       ctx.fillStyle = "#00ffff";
       ctx.shadowColor = "#b300ff";
-      ctx.shadowBlur = 16;
+      ctx.shadowBlur = this.glowScale * 16;
       ctx.fill();
     } else if (p.isThorn) {
       ctx.rotate(p.angle);
@@ -946,14 +955,14 @@ class GameRenderer {
       ctx.closePath();
       ctx.fillStyle = "#ff0077";
       ctx.shadowColor = "#ff0077";
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = this.glowScale * 10;
       ctx.fill();
     } else {
       ctx.beginPath();
       ctx.arc(0, 0, p.radius, 0, Math.PI * 2);
       ctx.fillStyle = p.isEnemy ? "#ff3366" : "#00ffcc";
       ctx.shadowColor = p.isEnemy ? "#ff0055" : "#00ffaa";
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = this.glowScale * 10;
       ctx.fill();
     }
     ctx.restore();
@@ -970,7 +979,7 @@ class GameRenderer {
     ctx.arc(0, 0, orb.radius * pulse, 0, Math.PI * 2);
     ctx.fillStyle = "#00ffaa";
     ctx.shadowColor = "#00ffaa";
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = this.glowScale * 12;
     ctx.fill();
 
     ctx.beginPath();
@@ -991,7 +1000,7 @@ class GameRenderer {
     texts.forEach(t => {
       ctx.fillStyle = t.color || "#00f0ff";
       ctx.shadowColor = t.color || "#00f0ff";
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = this.glowScale * 8;
       ctx.globalAlpha = Math.max(0, t.alpha);
       ctx.fillText(t.text, t.x, t.y);
     });
@@ -1011,7 +1020,7 @@ class GameRenderer {
       ctx.ellipse(0, 0, 10, 6, 0, 0, Math.PI * 2);
       ctx.fillStyle = "#ffd000";
       ctx.shadowColor = "#ffbb00";
-      ctx.shadowBlur = 14;
+      ctx.shadowBlur = this.glowScale * 14;
       ctx.fill();
       ctx.lineWidth = 2;
       ctx.strokeStyle = "#402000";
@@ -1041,7 +1050,7 @@ class GameRenderer {
       ctx.closePath();
       ctx.fillStyle = "#00ffaa";
       ctx.shadowColor = "#00ffaa";
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = this.glowScale * 10;
       ctx.fill();
     }
     ctx.restore();
