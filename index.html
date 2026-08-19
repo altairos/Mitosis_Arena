@@ -10,6 +10,9 @@
   <div id="game-container">
     <canvas id="gameCanvas"></canvas>
 
+    <!-- Touch Pointer Ring indicator -->
+    <div id="touch-pointer-ring" class="touch-pointer-ring"></div>
+
     <!-- Swarm Surge Banner Alert -->
     <div id="surge-banner" class="surge-banner">☣️ 菌群暴动 (SWARM SURGE)! ☣️</div>
 
@@ -79,15 +82,12 @@
 
     <!-- Mobile Touch Controls -->
     <div id="mobile-controls" class="mobile-controls">
-      <div id="joystick-zone" class="joystick-zone">
-        <div id="joystick-knob" class="joystick-knob"></div>
-      </div>
-      <div class="touch-actions">
-        <button id="btn-split" class="touch-btn split-btn">
+      <div class="touch-actions-left">
+        <button id="btn-split" class="touch-btn split-btn" title="有丝分裂">
           <span class="icon">🧬</span>
           <span>分裂</span>
         </button>
-        <button id="btn-merge" class="touch-btn merge-btn">
+        <button id="btn-merge" class="touch-btn merge-btn" title="聚变合体">
           <span class="icon">💥</span>
           <span>聚变</span>
         </button>

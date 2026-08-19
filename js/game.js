@@ -184,9 +184,23 @@ class GameEngine {
       this.triggerSwarmSurge();
     }
 
-    const mousePos = window.inputManager.mouse;
-    const worldMouse = this.renderer.screenToWorld(mousePos.x, mousePos.y);
-    const moveVec = window.inputManager.getMovementVector();
+    // Calculate player screen position for direct touch steering
+    const playerScreenPos = this.renderer.worldToScreen(this.player.centroid.x, this.player.centroid.y);
+    const moveVec = window.inputManager.getMovementVector(playerScreenPos);
+
+    // Aim target in world coordinates
+    let targetWorldPoint;
+    if (window.inputManager.touchMove && window.inputManager.touchMove.active) {
+      targetWorldPoint = this.renderer.screenToWorld(
+        window.inputManager.touchMove.x,
+        window.inputManager.touchMove.y
+      );
+    } else {
+      targetWorldPoint = this.renderer.screenToWorld(
+        window.inputManager.mouse.x,
+        window.inputManager.mouse.y
+      );
+    }
 
     this.player.update(
       dt, moveVec, worldMouse, this.arenaRadius,
@@ -600,10 +614,12 @@ class GameEngine {
       const isHyper = opt.tier === "hyper";
       card.innerHTML = `
         <div class="card-icon">${opt.icon}</div>
-        <div class="card-title">${opt.name}</div>
-        <div class="card-tier">${isHyper ? "⚡ 究极基因超武 ⚡" : opt.tier.toUpperCase() + " (RANK " + (opt.rank + 1) + "/" + opt.maxRank + ")"}</div>
-        ${opt.reqDesc ? `<div class="card-req">${opt.reqDesc}</div>` : ""}
-        <div class="card-desc">${opt.desc}</div>
+        <div class="card-info">
+          <div class="card-title">${opt.name}</div>
+          <div class="card-tier">${isHyper ? "⚡ 究极基因超武 ⚡" : opt.tier.toUpperCase() + " (RANK " + (opt.rank + 1) + "/" + opt.maxRank + ")"}</div>
+          ${opt.reqDesc ? `<div class="card-req">${opt.reqDesc}</div>` : ""}
+          <div class="card-desc">${opt.desc}</div>
+        </div>
       `;
       card.addEventListener("click", () => {
         window.upgradeManager.selectUpgrade(opt.id, this.player);

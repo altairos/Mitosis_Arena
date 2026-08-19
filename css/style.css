@@ -11,6 +11,7 @@ html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  overscroll-behavior: none;
   background-color: #03080e;
   font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
   color: #e0f8ff;
@@ -20,18 +21,19 @@ html, body {
   position: relative;
   width: 100vw;
   height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   overflow: hidden;
+  overscroll-behavior: none;
   background: radial-gradient(circle at center, #0a1826 0%, #03080e 100%);
 }
 
 canvas#gameCanvas {
   display: block;
+  position: absolute;
+  top: 0; left: 0;
   width: 100%;
   height: 100%;
   cursor: crosshair;
+  touch-action: none;
 }
 
 .ui-overlay {
@@ -835,4 +837,121 @@ canvas#gameCanvas {
 @keyframes surge-pulse {
   from { opacity: 0.7; transform: translateX(-50%) scale(0.96); }
   to { opacity: 1; transform: translateX(-50%) scale(1.04); }
+}
+
+/* ====== Mobile Touch Controls - LEFT HAND SIDE ====== */
+.mobile-controls {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 20;
+}
+.touch-actions-left {
+  position: absolute;
+  bottom: 22px; left: 16px;
+  display: flex; flex-direction: column; gap: 14px;
+  pointer-events: auto;
+  z-index: 30;
+}
+.touch-btn {
+  width: 64px; height: 64px; border-radius: 50%;
+  border: 2.5px solid rgba(0, 240, 255, 0.45);
+  background: rgba(6, 24, 38, 0.92);
+  color: #fff; font-weight: bold; font-size: 11px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 1px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5), 0 0 10px rgba(0, 240, 255, 0.2);
+  touch-action: none;
+}
+.touch-btn:active { transform: scale(0.88); }
+.touch-btn.split-btn { border-color: #00f0ff; }
+.touch-btn.split-btn:active { background: rgba(0, 240, 255, 0.35); }
+.touch-btn.merge-btn { border-color: #ff0077; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5), 0 0 10px rgba(255, 0, 119, 0.3); }
+.touch-btn.merge-btn:active { background: rgba(255, 0, 119, 0.35); }
+.touch-btn span.icon { font-size: 18px; }
+
+/* Touch pointer ring */
+.touch-pointer-ring {
+  position: absolute;
+  width: 40px; height: 40px;
+  border: 2px solid rgba(0, 240, 255, 0.5);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  box-shadow: 0 0 10px #00f0ff;
+  display: none;
+  z-index: 15;
+}
+
+/* Modal Backdrops - Force Full Touch Scrolling */
+.modal-backdrop {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+  overscroll-behavior: contain;
+}
+
+.mutation-container {
+  max-width: 580px; width: 100%;
+  padding: 16px 18px;
+}
+
+.cards-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 8px 0;
+  max-height: 60vh;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+  padding: 4px 6px;
+}
+
+.mutation-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  text-align: left;
+  gap: 12px;
+  padding: 12px 14px;
+  touch-action: pan-y !important;
+}
+
+.card-icon {
+  font-size: 30px;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.card-info {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.card-tier {
+  margin-bottom: 3px;
+}
+
+.card-desc {
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+@media (max-width: 768px) {
+  .strain-selector {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .strain-card {
+    padding: 8px 10px;
+  }
+  .strain-desc {
+    font-size: 10px;
+  }
+  .modal-card {
+    padding: 16px 12px;
+  }
 }
