@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>细胞裂变 (Mitosis Arena) - 极简肉鸽微观动作游戏</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Swarm Surge Banner Alert -->
+    <div id="surge-banner" class="surge-banner">☣️ 菌群暴动 (SWARM SURGE)! ☣️</div>
+
+    <!-- UI Overlay Layer -->
+    <div class="ui-overlay">
+      <!-- Top HUD -->
+      <div class="top-hud">
+        <!-- Stats Left -->
+        <div class="hud-panel stats-left">
+          <div class="bar-container">
+            <div class="bar-label hp-label">
+              <span>生命活性 (HP)</span>
+              <span id="hp-text">100 / 100</span>
+            </div>
+            <div class="bar-track">
+              <div id="hp-fill" class="bar-fill hp-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+
+          <div class="bar-container">
+            <div class="bar-label atp-label">
+              <span id="level-text">LV.1 基因进化</span>
+              <span>ATP 能量</span>
+            </div>
+            <div class="bar-track">
+              <div id="atp-fill" class="bar-fill atp-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div class="cell-count-badge">
+            <div class="dot"></div>
+            <span id="cell-count-text">1 CELLS</span>
+          </div>
+        </div>
+
+        <!-- Center HUD -->
+        <div class="hud-panel center-hud">
+          <div id="timer-display" class="timer-display">00:00</div>
+          <div id="wave-text" class="wave-badge">WAVE 1</div>
+          <div id="score-text" class="score-hud">SCORE: 0</div>
+        </div>
+
+        <!-- Right Controls -->
+        <div class="right-controls">
+          <button id="btn-sound" class="icon-btn" title="切换音效">🔊</button>
+          <button id="btn-pause" class="icon-btn" title="暂停游戏">⏸️</button>
+        </div>
+      </div>
+
+      <!-- Boss Bar -->
+      <div id="boss-bar-panel" class="boss-bar-panel">
+        <div id="boss-title" class="boss-title">COLONY QUEEN</div>
+        <div class="boss-bar-track">
+          <div id="boss-bar-fill" class="boss-bar-fill"></div>
+        </div>
+      </div>
+
+      <!-- Bottom Controls Hint -->
+      <div class="bottom-hud">
+        <div class="shortcuts-hint">
+          <div class="hint-key"><kbd>WASD / 鼠标</kbd> 移动 & 瞄准</div>
+          <div class="hint-key"><kbd>Space / 右键</kbd> 🧬 有丝分裂 (Split)</div>
+          <div class="hint-key"><kbd>E / Shift</kbd> 💥 聚变合体 (Merge)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Touch Controls -->
+    <div id="mobile-controls" class="mobile-controls">
+      <div id="joystick-zone" class="joystick-zone">
+        <div id="joystick-knob" class="joystick-knob"></div>
+      </div>
+      <div class="touch-actions">
+        <button id="btn-split" class="touch-btn split-btn">
+          <span class="icon">🧬</span>
+          <span>分裂</span>
+        </button>
+        <button id="btn-merge" class="touch-btn merge-btn">
+          <span class="icon">💥</span>
+          <span>聚变</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Start Menu Modal -->
+    <div id="modal-start" class="modal-backdrop">
+      <div class="modal-card">
+        <h1 class="game-title">细胞裂变</h1>
+        <div class="game-subtitle">MITOSIS ARENA • 微观肉鸽动作射击</div>
+
+        <!-- Difficulty Selector -->
+        <div class="difficulty-selector">
+          <button id="diff-normal" class="diff-btn active">🧪 标准增殖 (Normal)</button>
+          <button id="diff-insane" class="diff-btn insane">☣️ 异变狂暴 (Insane 1.5x)</button>
+        </div>
+
+        <div class="instructions-grid">
+          <div class="instruction-item">
+            <h4>🧬 有丝分裂 (Mitosis)</h4>
+            <p>分裂成多个子细胞，火力全向爆发散射，机动性极强，但更脆弱。</p>
+          </div>
+          <div class="instruction-item">
+            <h4>💥 聚变合体 (Fusion)</h4>
+            <p>所有子细胞向中心高速回拉合体，释放毁灭性清屏冲击波与护盾。</p>
+          </div>
+          <div class="instruction-item">
+            <h4>🧪 DNA 基因突变</h4>
+            <p>收集微生物掉落的 ATP 升级，构筑蜂群电网、超新星合体、吞噬光环等强大流派！</p>
+          </div>
+          <div class="instruction-item">
+            <h4>🎮 极致操作与音效</h4>
+            <p>全端支持（PC 键鼠 + 手机触控），程序化 WebAudio 合成音效，即开即战！</p>
+          </div>
+        </div>
+
+        <button id="btn-start" class="btn-primary">
+          <span>⚡ 开始培养 (START)</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- DNA Mutation Level Up Modal -->
+    <div id="modal-mutation" class="modal-backdrop hidden">
+      <div class="modal-card mutation-container">
+        <h2 class="game-title" style="font-size: 28px;">🧬 DNA 基因突变</h2>
+        <div class="game-subtitle">请选择一项细胞进化的突变方向</div>
+        <div id="cards-deck" class="cards-deck"></div>
+      </div>
+    </div>
+
+    <!-- Pause Modal -->
+    <div id="modal-pause" class="modal-backdrop hidden">
+      <div class="modal-card" style="max-width: 400px;">
+        <h2 class="game-title" style="font-size: 30px;">游戏暂停</h2>
+        <div class="game-subtitle">细胞培养处于低温冷冻状态</div>
+        <button onclick="window.game.resumeGame()" class="btn-primary" style="margin-top: 10px;">
+          <span>▶️ 继续实验</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="modal-gameover" class="modal-backdrop hidden">
+      <div class="modal-card" style="max-width: 480px;">
+        <h2 class="game-title" style="font-size: 32px; background: linear-gradient(90deg, #ff0055, #ffaa00); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">细胞坏死</h2>
+        <div class="game-subtitle">本次生物培养实验已终止</div>
+
+        <div class="stats-summary">
+          <div class="stat-box">
+            <div class="title">存活时间</div>
+            <div id="stat-time" class="value">00:00</div>
+          </div>
+          <div class="stat-box">
+            <div class="title">吞噬微生物</div>
+            <div id="stat-kills" class="value">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="title">最大分裂数</div>
+            <div id="stat-cells" class="value">1</div>
+          </div>
+          <div class="stat-box">
+            <div class="title">综合评分</div>
+            <div id="stat-score" class="value">0</div>
+          </div>
+        </div>
+
+        <button id="btn-restart" class="btn-primary">
+          <span>🔄 重新增殖 (RESTART)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/audio.js"></script>
+  <script src="js/upgrades.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
