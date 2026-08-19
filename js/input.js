@@ -1,4 +1,4 @@
-// Input Manager v4: Responsive Touch Steering Anywhere on Screen
+// Input Manager v5: High-Precision Direct Touch + Window Bounce Prevention
 
 class InputManager {
   constructor() {
@@ -39,7 +39,6 @@ class InputManager {
     window.addEventListener("mouseup", (e) => { if (e.button === 0) this.mouse.down = false; });
     window.addEventListener("contextmenu", (e) => e.preventDefault());
 
-    // Setup Touch
     this.setupTouch();
   }
 
@@ -69,9 +68,9 @@ class InputManager {
       btnMerge.addEventListener("click", handleMerge);
     }
 
-    // Global touch on window: ANY touch outside buttons/modals controls player steering!
+    // Touch on Window: Prevent page drag & steer player smoothly
     window.addEventListener("touchstart", (e) => {
-      // If modal is open, let user touch modal freely and DO NOT steer
+      // If modal is open, let user interact with modal natively
       if (document.querySelector(".modal-backdrop:not(.hidden)")) {
         this.touchMove.active = false;
         if (pointerRing) pointerRing.style.display = "none";
@@ -81,10 +80,11 @@ class InputManager {
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
         const el = document.elementFromPoint(t.clientX, t.clientY);
-        // Skip touches on buttons
         if (el && (el.closest(".touch-btn") || el.closest(".icon-btn"))) continue;
 
-        // Claim steering touch
+        // Prevent window dragging / viewport scrolling
+        e.preventDefault();
+
         this.touchMove.active = true;
         this.touchMove.id = t.identifier;
         this.touchMove.x = t.clientX;
@@ -100,8 +100,13 @@ class InputManager {
     }, { passive: false });
 
     window.addEventListener("touchmove", (e) => {
-      if (!this.touchMove.active) return;
+      // If modal is open, allow native scroll
       if (document.querySelector(".modal-backdrop:not(.hidden)")) return;
+
+      if (!this.touchMove.active) return;
+
+      // Prevent mobile browser window drag / pull-to-refresh
+      e.preventDefault();
 
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
@@ -152,9 +157,8 @@ class InputManager {
       const dy = this.touchMove.y - playerScreenPos.y;
       const dist = Math.hypot(dx, dy);
 
-      // Deadzone of 10px, full speed reached by 35px!
-      if (dist > 10) {
-        const factor = Math.min(1.0, (dist - 10) / 30);
+      if (dist > 8) {
+        const factor = Math.min(1.0, (dist - 8) / 25);
         return {
           x: (dx / dist) * factor,
           y: (dy / dist) * factor
@@ -163,13 +167,13 @@ class InputManager {
       return { x: 0, y: 0 };
     }
 
-    // Desktop Mouse Drag (Optional)
+    // Desktop Mouse Drag
     if (this.mouse.down && playerScreenPos) {
       const dx = this.mouse.x - playerScreenPos.x;
       const dy = this.mouse.y - playerScreenPos.y;
       const dist = Math.hypot(dx, dy);
-      if (dist > 15) {
-        const factor = Math.min(1.0, (dist - 15) / 50);
+      if (dist > 12) {
+        const factor = Math.min(1.0, (dist - 12) / 45);
         return { x: (dx / dist) * factor, y: (dy / dist) * factor };
       }
     }

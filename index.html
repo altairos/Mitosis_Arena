@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>细胞裂变 (Mitosis Arena) - 极简肉鸽微观动作游戏</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <title>细胞裂变 (Mitosis Arena)</title>
+  <link rel="stylesheet" href="css/style.css?v=1787174273683" />
 </head>
 <body>
   <div id="game-container">
@@ -80,9 +80,9 @@
       </div>
     </div>
 
-    <!-- Mobile Touch Action Buttons (Left Hand Side) -->
+    <!-- Mobile Touch Action Buttons (Fixed Bottom-Left) -->
     <div id="mobile-controls" class="mobile-controls">
-      <div class="touch-actions-left">
+      <div class="touch-actions-left" style="position: fixed; bottom: 20px; left: 16px; z-index: 99; display: flex; flex-direction: column; gap: 12px;">
         <button id="btn-split" class="touch-btn split-btn" title="有丝分裂">
           <span class="icon">🧬</span>
           <span>分裂</span>
@@ -94,7 +94,7 @@
       </div>
     </div>
 
-    <!-- Start Menu Modal (Clean, Streamlined, No Wall of Text) -->
+    <!-- Start Menu Modal (Super Clean, Ultra Streamlined) -->
     <div id="modal-start" class="modal-backdrop">
       <div class="modal-card start-card">
         <h1 class="game-title">细胞裂变</h1>
@@ -103,11 +103,10 @@
         <!-- Difficulty Selector -->
         <div class="difficulty-selector">
           <button id="diff-normal" class="diff-btn active">🧪 标准模式</button>
-          <button id="diff-insane" class="diff-btn insane">☣️ 狂暴模式 (1.5x)</button>
+          <button id="diff-insane" class="diff-btn insane">☣️ 狂暴模式</button>
         </div>
 
-        <!-- Cell Strain / Class Selector (Compact 2x2 grid) -->
-        <div class="strain-header">🧬 选择初始菌株</div>
+        <!-- Cell Strain Selector (Super Compact 2x2) -->
         <div class="strain-selector">
           <div class="strain-card active" data-strain="strain_standard">
             <span class="strain-icon">🧪</span>
@@ -115,32 +114,32 @@
           </div>
           <div class="strain-card" data-strain="strain_ciliate">
             <span class="strain-icon">⚡</span>
-            <div class="strain-text"><strong>极速纤毛</strong><span>32裂变弹幕</span></div>
+            <div class="strain-text"><strong>极速纤毛</strong><span>32分裂</span></div>
           </div>
           <div class="strain-card" data-strain="strain_phagocyte">
             <span class="strain-icon">🛡️</span>
-            <div class="strain-text"><strong>单核巨噬</strong><span>引力黑洞母体</span></div>
+            <div class="strain-text"><strong>单核巨噬</strong><span>引力母体</span></div>
           </div>
           <div class="strain-card" data-strain="strain_extremophile">
             <span class="strain-icon">☣️</span>
-            <div class="strain-text"><strong>嗜酸异化</strong><span>酸蚀剧毒流</span></div>
+            <div class="strain-text"><strong>嗜酸异化</strong><span>剧毒酸蚀</span></div>
           </div>
         </div>
 
-        <div class="quick-tips">🕹️ 触屏任意位置滑动控制移动 • 左下角按钮触发分裂与合体</div>
+        <div class="quick-tips">💡 滑动屏幕操控移动 • 左下角按键分裂/聚变</div>
 
         <button id="btn-start" class="btn-primary">
-          <span>⚡ 开始培养 (START)</span>
+          <span>⚡ 开始游戏</span>
         </button>
       </div>
     </div>
 
-    <!-- DNA Mutation Level Up Modal (Ultra Compact & Scrollable) -->
+    <!-- DNA Mutation Level Up Modal (Ultra Compact) -->
     <div id="modal-mutation" class="modal-backdrop hidden">
       <div class="modal-card mutation-container">
         <div class="mutation-header">
-          <h2 class="mutation-title">🧬 基因突变进化</h2>
-          <span class="mutation-subtitle">选择一项进化方向</span>
+          <h2 class="mutation-title">🧬 基因突变</h2>
+          <span class="mutation-subtitle">选择一项进化</span>
         </div>
         <div id="cards-deck" class="cards-deck"></div>
       </div>
@@ -148,10 +147,9 @@
 
     <!-- Pause Modal -->
     <div id="modal-pause" class="modal-backdrop hidden">
-      <div class="modal-card" style="max-width: 360px;">
-        <h2 class="game-title" style="font-size: 26px;">游戏暂停</h2>
-        <div class="game-subtitle">细胞处于冷冻状态</div>
-        <button onclick="window.game.resumeGame()" class="btn-primary" style="margin-top: 10px;">
+      <div class="modal-card" style="max-width: 320px;">
+        <h2 class="game-title" style="font-size: 24px;">游戏暂停</h2>
+        <button onclick="window.game.resumeGame()" class="btn-primary" style="margin-top: 14px;">
           <span>▶️ 继续游戏</span>
         </button>
       </div>
@@ -159,8 +157,8 @@
 
     <!-- Game Over Modal -->
     <div id="modal-gameover" class="modal-backdrop hidden">
-      <div class="modal-card" style="max-width: 440px;">
-        <h2 class="game-title" style="font-size: 28px; background: linear-gradient(90deg, #ff0055, #ffaa00); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">细胞坏死</h2>
+      <div class="modal-card" style="max-width: 420px;">
+        <h2 class="game-title" style="font-size: 26px; background: linear-gradient(90deg, #ff0055, #ffaa00); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">细胞坏死</h2>
         <div class="game-subtitle">实验终止</div>
 
         <div class="stats-summary">
@@ -169,32 +167,32 @@
             <div id="stat-time" class="value">00:00</div>
           </div>
           <div class="stat-box">
-            <div class="title">消灭微生物</div>
+            <div class="title">消灭敌人</div>
             <div id="stat-kills" class="value">0</div>
           </div>
           <div class="stat-box">
-            <div class="title">最大分裂数</div>
+            <div class="title">最大分裂</div>
             <div id="stat-cells" class="value">1</div>
           </div>
           <div class="stat-box">
-            <div class="title">综合得分</div>
+            <div class="title">总得分</div>
             <div id="stat-score" class="value">0</div>
           </div>
         </div>
 
         <button id="btn-restart" class="btn-primary">
-          <span>🔄 重新实验 (RESTART)</span>
+          <span>🔄 重新开始</span>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Scripts -->
-  <script src="js/audio.js"></script>
-  <script src="js/upgrades.js"></script>
-  <script src="js/renderer.js"></script>
-  <script src="js/entities.js"></script>
-  <script src="js/input.js"></script>
-  <script src="js/game.js"></script>
+  <!-- Scripts with Cache Busting -->
+  <script src="js/audio.js?v=1787174273683"></script>
+  <script src="js/upgrades.js?v=1787174273683"></script>
+  <script src="js/renderer.js?v=1787174273683"></script>
+  <script src="js/entities.js?v=1787174273683"></script>
+  <script src="js/input.js?v=1787174273683"></script>
+  <script src="js/game.js?v=1787174273683"></script>
 </body>
 </html>

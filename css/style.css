@@ -10,17 +10,20 @@
 html, body {
   width: 100%;
   height: 100%;
+  height: 100dvh;
   overflow: hidden;
   overscroll-behavior: none;
   background-color: #03080e;
   font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
   color: #e0f8ff;
+  position: fixed;
 }
 
 #game-container {
   position: relative;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   overscroll-behavior: none;
   background: radial-gradient(circle at center, #0a1826 0%, #03080e 100%);
@@ -161,19 +164,25 @@ canvas#gameCanvas {
   border-radius: 3px; padding: 1px 3px; font-weight: bold; font-size: 9px;
 }
 
-/* ====== Mobile Touch Controls - LEFT HAND SIDE ====== */
+/* ====== Mobile Touch Controls - FIXED BOTTOM LEFT ====== */
 .mobile-controls {
-  position: absolute; top: 0; left: 0;
+  position: fixed;
+  top: 0; left: 0;
   width: 100%; height: 100%;
   pointer-events: none;
   z-index: 20;
 }
 .touch-actions-left {
-  position: absolute;
-  bottom: 20px; left: 16px;
-  display: flex; flex-direction: column; gap: 12px;
-  pointer-events: auto;
-  z-index: 30;
+  position: fixed !important;
+  bottom: 20px !important;
+  left: 16px !important;
+  top: auto !important;
+  right: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  pointer-events: auto !important;
+  z-index: 99 !important;
 }
 .touch-btn {
   width: 62px; height: 62px; border-radius: 50%;
@@ -224,16 +233,16 @@ canvas#gameCanvas {
 
 /* ====== MODALS & BACKDROPS ====== */
 .modal-backdrop {
-  position: absolute; top: 0; left: 0;
+  position: fixed; top: 0; left: 0;
   width: 100%; height: 100%;
-  background: rgba(3, 8, 14, 0.92);
+  background: rgba(3, 8, 14, 0.94);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 200;
-  padding: 12px;
+  padding: 10px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -243,53 +252,47 @@ canvas#gameCanvas {
   background: linear-gradient(145deg, rgba(12, 32, 50, 0.97), rgba(6, 18, 30, 0.98));
   border: 1px solid rgba(0, 240, 255, 0.3);
   border-radius: 16px;
-  padding: 18px 20px;
-  max-width: 480px; width: 100%;
+  padding: 16px 18px;
+  max-width: 440px; width: 100%;
   text-align: center;
   box-shadow: 0 14px 35px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 240, 255, 0.12);
-  animation: pop-in 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-@keyframes pop-in {
-  from { transform: scale(0.92); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
 }
 
 .game-title {
-  font-size: 26px; font-weight: 900; letter-spacing: 2px;
+  font-size: 24px; font-weight: 900; letter-spacing: 2px;
   background: linear-gradient(90deg, #00f0ff, #00ffaa, #ff0077);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   margin-bottom: 2px;
 }
-.game-subtitle { font-size: 11px; color: #8bb5d1; margin-bottom: 12px; letter-spacing: 1px; }
+.game-subtitle { font-size: 10px; color: #8bb5d1; margin-bottom: 10px; letter-spacing: 1px; }
 
 /* Start Card Streamlined Layout */
-.start-card { max-width: 440px; padding: 18px 18px; }
+.start-card { max-width: 400px; padding: 16px 16px; }
 
-.difficulty-selector { display: flex; justify-content: center; gap: 8px; margin-bottom: 12px; }
+.difficulty-selector { display: flex; justify-content: center; gap: 8px; margin-bottom: 10px; }
 .diff-btn {
   background: rgba(6, 24, 38, 0.85);
   border: 1px solid rgba(0, 240, 255, 0.3);
   color: #8bb5d1; font-size: 11px; font-weight: 700;
-  padding: 6px 14px; border-radius: 16px; cursor: pointer;
+  padding: 5px 12px; border-radius: 14px; cursor: pointer;
 }
 .diff-btn.active { background: rgba(0, 240, 255, 0.22); border-color: #00f0ff; color: #00f0ff; box-shadow: 0 0 10px rgba(0, 240, 255, 0.35); }
 .diff-btn.insane.active { background: rgba(255, 0, 85, 0.25); border-color: #ff0055; color: #ff3366; }
 
-.strain-header { font-size: 11px; font-weight: 700; color: #00f0ff; margin-bottom: 6px; letter-spacing: 0.5px; text-align: left; }
 .strain-selector {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 .strain-card {
   background: rgba(0, 240, 255, 0.05);
   border: 1px solid rgba(0, 240, 255, 0.2);
-  border-radius: 10px;
-  padding: 7px 8px;
+  border-radius: 8px;
+  padding: 6px 7px;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   cursor: pointer;
   text-align: left;
   transition: all 0.15s ease;
@@ -299,7 +302,7 @@ canvas#gameCanvas {
   border-color: #00f0ff;
   box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
 }
-.strain-icon { font-size: 20px; flex-shrink: 0; }
+.strain-icon { font-size: 18px; flex-shrink: 0; }
 .strain-text { display: flex; flex-direction: column; min-width: 0; }
 .strain-text strong { font-size: 11px; color: #e0f8ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .strain-text span { font-size: 9px; color: #7cb5d8; }
@@ -309,34 +312,34 @@ canvas#gameCanvas {
   color: #8bb5d1;
   background: rgba(0, 240, 255, 0.05);
   border: 1px dashed rgba(0, 240, 255, 0.2);
-  border-radius: 8px;
-  padding: 6px 10px;
-  margin-bottom: 14px;
+  border-radius: 6px;
+  padding: 5px 8px;
+  margin-bottom: 12px;
 }
 
 .btn-primary {
   background: linear-gradient(135deg, #00f0ff 0%, #00a2ff 100%);
-  color: #02101a; font-size: 14px; font-weight: 800; letter-spacing: 0.5px;
-  padding: 10px 28px; border: none; border-radius: 24px; cursor: pointer;
-  box-shadow: 0 0 18px rgba(0, 240, 255, 0.45);
+  color: #02101a; font-size: 13px; font-weight: 800; letter-spacing: 0.5px;
+  padding: 9px 24px; border: none; border-radius: 22px; cursor: pointer;
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.45);
   display: inline-flex; align-items: center; justify-content: center; gap: 5px;
 }
-.btn-primary:hover { transform: scale(1.02); box-shadow: 0 0 24px rgba(0, 240, 255, 0.7); }
+.btn-primary:hover { transform: scale(1.02); box-shadow: 0 0 22px rgba(0, 240, 255, 0.7); }
 
-/* ====== MUTATION UPGRADE MODAL (Ultra-Compact & Fits 3 Cards on 100% of Screens) ====== */
+/* ====== MUTATION UPGRADE MODAL ====== */
 .mutation-container {
-  max-width: 480px; width: 100%;
-  padding: 12px 14px;
+  max-width: 440px; width: 100%;
+  padding: 10px 12px;
 }
-.mutation-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; padding: 0 2px; }
-.mutation-title { font-size: 15px; font-weight: 800; color: #00f0ff; }
-.mutation-subtitle { font-size: 10px; color: #7cb5d8; }
+.mutation-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; padding: 0 2px; }
+.mutation-title { font-size: 14px; font-weight: 800; color: #00f0ff; }
+.mutation-subtitle { font-size: 9px; color: #7cb5d8; }
 
 .cards-deck {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 8px;
+  gap: 5px;
+  margin-bottom: 6px;
   max-height: 65vh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -345,23 +348,22 @@ canvas#gameCanvas {
 .mutation-card {
   background: linear-gradient(145deg, rgba(16, 40, 60, 0.95), rgba(8, 22, 34, 0.98));
   border: 1px solid rgba(0, 240, 255, 0.25);
-  border-radius: 10px;
-  padding: 7px 10px;
+  border-radius: 8px;
+  padding: 6px 9px;
   display: flex;
   flex-direction: row;
   align-items: center;
   text-align: left;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
   position: relative;
   overflow: hidden;
   transition: all 0.15s ease;
-  min-height: 52px;
+  min-height: 48px;
 }
 .mutation-card:active {
   background: rgba(0, 240, 255, 0.15);
   border-color: #00f0ff;
-  transform: scale(0.98);
 }
 .mutation-card::before {
   content: ""; position: absolute; top: 0; left: 0;
@@ -374,41 +376,41 @@ canvas#gameCanvas {
 .mutation-card.tier-hyper::before { background: linear-gradient(180deg, #00ffaa, #00f0ff, #ff0077); }
 .mutation-card.tier-hyper { border-color: rgba(0, 255, 170, 0.5); box-shadow: 0 0 10px rgba(0, 255, 170, 0.2); }
 
-.card-icon { font-size: 24px; flex-shrink: 0; }
+.card-icon { font-size: 22px; flex-shrink: 0; }
 .card-info { display: flex; flex-direction: column; flex-grow: 1; min-width: 0; }
-.card-header-line { display: flex; justify-content: space-between; align-items: baseline; gap: 4px; margin-bottom: 2px; }
-.card-title { font-size: 13px; font-weight: 800; color: #e0f8ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card-tier { font-size: 9px; font-weight: 700; color: #00f0ff; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0; }
+.card-header-line { display: flex; justify-content: space-between; align-items: baseline; gap: 4px; margin-bottom: 1px; }
+.card-title { font-size: 12px; font-weight: 800; color: #e0f8ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-tier { font-size: 8px; font-weight: 700; color: #00f0ff; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0; }
 .tier-epic .card-tier { color: #ff0077; }
 .tier-legendary .card-tier { color: #ffaa00; }
 .tier-hyper .card-tier { color: #00ffaa; }
-.card-req { font-size: 9px; color: #ffaa00; margin-bottom: 1px; }
-.card-desc { font-size: 10px; color: #9cbdd4; line-height: 1.25; }
+.card-req { font-size: 8px; color: #ffaa00; margin-bottom: 1px; }
+.card-desc { font-size: 9.5px; color: #9cbdd4; line-height: 1.2; }
 
 /* Reroll Button */
 .btn-reroll {
   background: rgba(0, 240, 255, 0.08);
   border: 1px solid rgba(0, 240, 255, 0.3);
   color: #00f0ff;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 6px 14px;
-  border-radius: 16px;
+  padding: 5px 12px;
+  border-radius: 14px;
   cursor: pointer;
-  margin-top: 4px;
+  margin-top: 2px;
   width: 100%;
 }
 .btn-reroll:disabled { opacity: 0.4; cursor: not-allowed; border-color: #444; color: #777; }
 
 /* Game Over Stats */
-.stats-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 12px 0; text-align: left; }
+.stats-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 10px 0; text-align: left; }
 .stat-box {
   background: rgba(0, 240, 255, 0.04);
   border: 1px solid rgba(0, 240, 255, 0.12);
-  border-radius: 8px; padding: 6px 8px;
+  border-radius: 6px; padding: 5px 7px;
 }
-.stat-box .title { font-size: 9px; color: #799db6; text-transform: uppercase; }
-.stat-box .value { font-size: 14px; font-weight: 800; color: #00f0ff; margin-top: 1px; }
+.stat-box .title { font-size: 8px; color: #799db6; text-transform: uppercase; }
+.stat-box .value { font-size: 13px; font-weight: 800; color: #00f0ff; margin-top: 1px; }
 
 @media (max-width: 768px) {
   .shortcuts-hint { display: none; }
