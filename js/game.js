@@ -409,13 +409,38 @@ class GameEngine {
   checkCollisions(dt) {
     const player = this.player;
 
-    // 1. Player Projectiles vs Enemies
+    // Spatial hash grid over enemies: turns the hot loops below from
+    // O(projectiles x enemies) brute force into local neighbourhood queries
+    const CELL = 110;
+    const grid = new Map();
+    for (const e of this.enemies) {
+      const k = Math.floor(e.x / CELL) * 100000 + Math.floor(e.y / CELL);
+      const arr = grid.get(k);
+      if (arr) arr.push(e); else grid.set(k, [e]);
+    }
+    const buf = [];
+    const nearby = (x, y, r) => {
+      buf.length = 0;
+      const minX = Math.floor((x - r) / CELL), maxX = Math.floor((x + r) / CELL);
+      const minY = Math.floor((y - r) / CELL), maxY = Math.floor((y + r) / CELL);
+      for (let gx = minX; gx <= maxX; gx++) {
+        for (let gy = minY; gy <= maxY; gy++) {
+          const arr = grid.get(gx * 100000 + gy);
+          if (arr) for (let i = 0; i < arr.length; i++) buf.push(arr[i]);
+        }
+      }
+      return buf;
+    };
+
+    // 1. Player Projectiles vs Enemies (grid query + squared distance)
     this.projectiles.forEach(p => {
       if (p.isEnemy) return;
-      for (let e of this.enemies) {
+      for (let e of nearby(p.x, p.y, p.radius + 80)) {
         if (p.hitList.has(e)) continue;
-        const d = Math.hypot(p.x - e.x, p.y - e.y);
-        if (d < p.radius + e.radius) {
+        const dxPE = p.x - e.x;
+        const dyPE = p.y - e.y;
+        const rr = p.radius + e.radius;
+        if (dxPE * dxPE + dyPE * dyPE < rr * rr) {
           p.hitList.add(e);
           let dmg = p.damage;
           if (e.isHardened) dmg *= 0.25; // Tardigrade Cryptobiosis armor
@@ -471,8 +496,10 @@ class GameEngine {
     this.projectiles.forEach(p => {
       if (!p.isEnemy) return;
       for (let cell of player.cells) {
-        const d = Math.hypot(p.x - cell.x, p.y - cell.y);
-        if (d < p.radius + cell.radius) {
+        const dxEP = p.x - cell.x;
+        const dyEP = p.y - cell.y;
+        const rrEP = p.radius + cell.radius;
+        if (dxEP * dxEP + dyEP * dyEP < rrEP * rrEP) {
           p.life = 0;
           player.takeDamage(p.damage, this.acidPools);
           this.renderer.addShake(4);
@@ -507,10 +534,10 @@ class GameEngine {
       }
     });
 
-    // 4a. Player Acid Pools vs Enemies
+    // 4a. Player Acid Pools vs Enemies (grid query)
     this.acidPools.forEach(pool => {
       if (pool.isEnemy) return;
-      for (let e of this.enemies) {
+      for (let e of nearby(pool.x, pool.y, pool.radius + 80)) {
         const d = Math.hypot(pool.x - e.x, pool.y - e.y);
         if (d < pool.radius + e.radius) {
           const mult = pool.isHyper ? 2.5 : 1.0;
@@ -547,7 +574,9 @@ class GameEngine {
           const dxW = c1.x - c2.x;
           const dyW = c1.y - c2.y;
           if (dxW * dxW + dyW * dyW < 420 * 420) {
-            for (let e of this.enemies) {
+            const midX = (c1.x + c2.x) / 2;
+            const midY = (c1.y + c2.y) / 2;
+            for (let e of nearby(midX, midY, 300)) {
               const dLine = this.distToSegment(e.x, e.y, c1.x, c1.y, c2.x, c2.y);
               if (dLine < e.radius + 6) {
                 const webDmg = player.baseDamage * 2.5 * player.stats.webDamageMult * dt;
@@ -584,9 +613,9 @@ class GameEngine {
     }
 
     // 7. Enemy Contact vs Player Cells (skip enemies killed this frame)
-    for (let e of this.enemies) {
-      if (e.hp <= 0) continue;
-      for (let cell of player.cells) {
+    for (const cell of player.cells) {
+      for (const e of nearby(cell.x, cell.y, cell.radius + 80)) {
+        if (e.hp <= 0) continue;
         const d = Math.hypot(cell.x - e.x, cell.y - e.y);
         if (d < cell.radius + e.radius) {
           player.takeDamage(e.damage * dt * 3.2, this.acidPools);
@@ -780,6 +809,8 @@ class GameEngine {
     // Adaptive quality: heavy effect load scales down expensive glow rendering
     const load = this.enemies.length + this.projectiles.length + this.acidPools.length + this.shockwaves.length;
     this.renderer.updateQuality(load);
+    // Crowded field: render enemies as cheap silhouettes (Boss keeps full art)
+    this.renderer.enemyLod = this.enemies.length > 140 ? 1 : 0;
 
     this.renderer.beginFrame();
 

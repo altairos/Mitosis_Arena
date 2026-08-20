@@ -9,6 +9,7 @@ class GameRenderer {
     this.height = window.innerHeight;
     this.dpr = 1;
     this.glowScale = 1;
+    this.enemyLod = 0;
     this.resize();
 
     // Camera
@@ -166,8 +167,8 @@ class GameRenderer {
       ctx.stroke();
     }
 
-    // Ambient floating bio-dust
-    this.dustParticles.forEach(d => {
+    // Ambient floating bio-dust (skipped in lowest quality mode)
+    if (this.glowScale > 0) this.dustParticles.forEach(d => {
       d.x += d.vx;
       d.y += d.vy;
       const dist = Math.hypot(d.x, d.y);
@@ -403,8 +404,54 @@ class GameRenderer {
     ctx.restore();
   }
 
+  // Cheap silhouette fallback for crowded fields: one fill + one stroke
+  // instead of the full multi-path vector art (major CPU/GPU save)
+  drawEnemySimple(enemy) {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.translate(enemy.x, enemy.y);
+
+    const r = enemy.radius;
+    const isHit = enemy.hitFlashTimer > 0;
+    const colors = {
+      bacterium: "#ff3366", phage: "#ffaa00", nematode: "#9900ff",
+      spore: "#00ddaa", amoeba: "#e6005c", flagellate: "#00f0aa",
+      ciliate: "#00bbff", tardigrade: "#c28800", macrophage: "#800040"
+    };
+    const color = enemy.isHardened ? "#d49b00" : (colors[enemy.type] || "#ff3366");
+
+    ctx.beginPath();
+    if (enemy.type === "bacterium" || enemy.type === "flagellate" || enemy.type === "ciliate") {
+      ctx.rotate(enemy.angle || 0);
+      ctx.ellipse(0, 0, r * 1.35, r * 0.75, 0, 0, Math.PI * 2);
+    } else {
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+    }
+    ctx.fillStyle = isHit ? "#ffffff" : color;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+    ctx.stroke();
+
+    // Keep the mini health bar for large units
+    if (enemy.maxHp > 30) {
+      const barW = r * 1.6;
+      const hpPct = Math.max(0, enemy.hp / enemy.maxHp);
+      ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+      ctx.fillRect(-barW / 2, -r - 10, barW, 4);
+      ctx.fillStyle = "#ff0055";
+      ctx.fillRect(-barW / 2, -r - 10, barW * hpPct, 4);
+    }
+    ctx.restore();
+  }
+
   // Draw Enemy Units
   drawEnemy(enemy, time) {
+    // Crowded field: swap detailed vector art for cheap silhouettes
+    if (this.enemyLod > 0 && !enemy.isBoss) {
+      this.drawEnemySimple(enemy);
+      return;
+    }
     const ctx = this.ctx;
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
