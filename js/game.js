@@ -839,6 +839,11 @@ class GameEngine {
     this.renderer.drawFloatingTexts(this.floatingTexts);
 
     this.renderer.endFrame();
+
+    // Screen-space overlay: off-screen hostile fire / boss direction hints
+    if (this.state === "PLAYING") {
+      this.renderer.drawEdgeIndicators(this.projectiles, this.activeBoss);
+    }
   }
 }
 

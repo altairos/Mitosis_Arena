@@ -642,18 +642,22 @@ class Enemy {
     // Exponential wave scaling
     const scale = (1 + Math.pow(Math.max(0, wave - 1), 1.25) * 0.28) * difficultyMult;
 
+    // Gentle early-game pacing: enemies run ~10-15% slower for the first
+    // few waves, phasing back to full speed from wave 4 onward
+    const earlyPace = wave <= 1 ? 0.85 : (wave <= 2 ? 0.90 : (wave <= 3 ? 0.95 : 1.0));
+
     if (type === "bacterium") {
       this.radius = this.isElite ? 22 : 16;
       this.maxHp = Math.round((this.isElite ? 60 : 22) * scale);
       this.hp = this.maxHp;
-      this.speed = (this.isElite ? 220 : 170) + Math.random() * 40;
+      this.speed = ((this.isElite ? 220 : 170) + Math.random() * 40) * earlyPace;
       this.damage = Math.round((this.isElite ? 22 : 12) * scale);
       this.atpValue = this.isElite ? 35 : 10;
     } else if (type === "phage") {
       this.radius = this.isElite ? 26 : 20;
       this.maxHp = Math.round((this.isElite ? 90 : 38) * scale);
       this.hp = this.maxHp;
-      this.speed = this.isElite ? 260 : 230;
+      this.speed = (this.isElite ? 260 : 230) * earlyPace;
       this.dashTimer = 0;
       this.damage = Math.round((this.isElite ? 28 : 16) * scale);
       this.atpValue = this.isElite ? 60 : 22;
@@ -661,14 +665,14 @@ class Enemy {
       this.radius = this.isElite ? 30 : 23;
       this.maxHp = Math.round((this.isElite ? 200 : 85) * scale);
       this.hp = this.maxHp;
-      this.speed = this.isElite ? 140 : 120;
+      this.speed = ((this.isElite ? 140 : 120)) * earlyPace;
       this.damage = Math.round((this.isElite ? 32 : 20) * scale);
       this.atpValue = this.isElite ? 90 : 35;
     } else if (type === "spore") {
       this.radius = this.isElite ? 30 : 24;
       this.maxHp = Math.round((this.isElite ? 120 : 50) * scale);
       this.hp = this.maxHp;
-      this.speed = 105;
+      this.speed = 105 * earlyPace;
       this.damage = Math.round((this.isElite ? 24 : 14) * scale);
       this.atpValue = this.isElite ? 75 : 30;
       this.shootCooldown = this.isElite ? 1.4 : 2.0;
@@ -677,7 +681,7 @@ class Enemy {
       this.radius = this.isElite ? 42 : 33;
       this.maxHp = Math.round((this.isElite ? 280 : 120) * scale);
       this.hp = this.maxHp;
-      this.speed = 90;
+      this.speed = 90 * earlyPace;
       this.damage = Math.round((this.isElite ? 36 : 24) * scale);
       this.atpValue = this.isElite ? 120 : 50;
       this.canSplit = true;
@@ -686,7 +690,7 @@ class Enemy {
       this.radius = this.isElite ? 26 : 20;
       this.maxHp = Math.round((this.isElite ? 110 : 48) * scale);
       this.hp = this.maxHp;
-      this.speed = this.isElite ? 230 : 190;
+      this.speed = (this.isElite ? 230 : 190) * earlyPace;
       this.damage = Math.round((this.isElite ? 26 : 15) * scale);
       this.atpValue = this.isElite ? 65 : 25;
       this.trailTimer = 0;

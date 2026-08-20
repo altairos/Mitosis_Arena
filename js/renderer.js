@@ -122,6 +122,70 @@ class GameRenderer {
     this.ctx.restore();
   }
 
+  // Screen-space edge arrows for off-screen hostile fire and the boss
+  drawEdgeIndicators(projectiles, boss) {
+    const ctx = this.ctx;
+    const w = this.width;
+    const h = this.height;
+    const m = 22;
+    const topM = 80; // keep clear of the top HUD
+    const buckets = new Array(24).fill(false);
+    let drawn = 0;
+
+    ctx.save();
+    ctx.scale(this.dpr, this.dpr);
+
+    for (const p of projectiles) {
+      if (!p.isEnemy) continue;
+      const s = this.worldToScreen(p.x, p.y);
+      // Only warn about bullets that are actually off screen
+      if (s.x > -20 && s.x < w + 20 && s.y > -20 && s.y < h + 20) continue;
+
+      const ang = Math.atan2(s.y - h / 2, s.x - w / 2);
+      // One arrow per 15-degree sector: dense bullet storms collapse
+      // into a few clear direction hints instead of a wall of arrows
+      const bi = Math.floor(((ang + Math.PI) / (Math.PI * 2)) * 24) % 24;
+      if (buckets[bi]) continue;
+      buckets[bi] = true;
+
+      const cx = Math.max(m, Math.min(w - m, s.x));
+      const cy = Math.max(topM, Math.min(h - m, s.y));
+      this.drawEdgeArrow(cx, cy, ang, "#ff3311", 9);
+      if (++drawn >= 12) break;
+    }
+
+    if (boss && boss.hp > 0) {
+      const s = this.worldToScreen(boss.x, boss.y);
+      if (s.x < 0 || s.x > w || s.y < 0 || s.y > h) {
+        const ang = Math.atan2(s.y - h / 2, s.x - w / 2);
+        const cx = Math.max(m, Math.min(w - m, s.x));
+        const cy = Math.max(topM, Math.min(h - m, s.y));
+        this.drawEdgeArrow(cx, cy, ang, "#b300ff", 14);
+      }
+    }
+
+    ctx.restore();
+  }
+
+  drawEdgeArrow(x, y, ang, color, size) {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(ang);
+    ctx.beginPath();
+    ctx.moveTo(size, 0);
+    ctx.lineTo(-size * 0.7, -size * 0.7);
+    ctx.lineTo(-size * 0.7, size * 0.7);
+    ctx.closePath();
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+    ctx.stroke();
+    ctx.restore();
+  }
+
   drawPetriDish(arenaRadius, time) {
     const ctx = this.ctx;
 
