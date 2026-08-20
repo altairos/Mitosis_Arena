@@ -192,7 +192,7 @@ class PlayerGroup {
     
     this.level = 1;
     this.atp = 0;
-    this.atpNeeded = 25;
+    this.atpNeeded = 80;
     this.totalAtp = 0;
     
     this.baseDamage = 16;
@@ -613,7 +613,7 @@ class PlayerGroup {
     if (this.atp >= this.atpNeeded) {
       this.atp -= this.atpNeeded;
       this.level++;
-      this.atpNeeded = Math.round(this.atpNeeded * 1.32 + 18);
+      this.atpNeeded = Math.round(this.atpNeeded * 1.38 + 25);
       window.soundEngine.playLevelUp();
       return true;
     }

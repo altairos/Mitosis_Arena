@@ -41,8 +41,9 @@ class GameRenderer {
   resize() {
     this.width = window.innerWidth;
     this.height = window.innerHeight;
-    // Render at native device resolution for crisp visuals (capped for perf)
-    this.dpr = Math.min(2, window.devicePixelRatio || 1);
+    // Render at native device resolution for crisp visuals (capped for perf;
+    // 2x was too much fill-rate for WeChat WebView on mid-range phones)
+    this.dpr = Math.min(1.5, window.devicePixelRatio || 1);
     this.canvas.width = Math.round(this.width * this.dpr);
     this.canvas.height = Math.round(this.height * this.dpr);
   }
@@ -124,51 +125,74 @@ class GameRenderer {
   drawPetriDish(arenaRadius, time) {
     const ctx = this.ctx;
 
-    // Outer darkness beyond dish
-    ctx.beginPath();
-    ctx.arc(0, 0, arenaRadius + 2000, 0, Math.PI * 2);
-    ctx.arc(0, 0, arenaRadius, 0, Math.PI * 2, true);
-    ctx.fillStyle = "rgba(1, 4, 8, 0.95)";
-    ctx.fill();
+    // Viewport bounds in world space (with margin for camera shake);
+    // this static background was previously drawn in full every frame,
+    // which dominated early-game cost before any enemies existed
+    const m = 60 / this.camera.zoom;
+    const vx0 = this.camera.x - this.width / 2 / this.camera.zoom - m;
+    const vx1 = this.camera.x + this.width / 2 / this.camera.zoom + m;
+    const vy0 = this.camera.y - this.height / 2 / this.camera.zoom - m;
+    const vy1 = this.camera.y + this.height / 2 / this.camera.zoom + m;
+    const viewFar = Math.hypot(
+      Math.max(Math.abs(vx0), Math.abs(vx1)),
+      Math.max(Math.abs(vy0), Math.abs(vy1))
+    );
 
-    // Dish glass rim glow
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(0, 0, arenaRadius, 0, Math.PI * 2);
-    ctx.lineWidth = 14;
-    ctx.strokeStyle = "rgba(0, 240, 255, 0.2)";
-    ctx.shadowColor = "#00f0ff";
-    ctx.shadowBlur = 25;
-    ctx.stroke();
+    // Outer darkness + dish rim: skip entirely while deep inside the dish
+    if (viewFar > arenaRadius - 50) {
+      if (viewFar > arenaRadius) {
+        ctx.beginPath();
+        ctx.arc(0, 0, arenaRadius + 2000, 0, Math.PI * 2);
+        ctx.arc(0, 0, arenaRadius, 0, Math.PI * 2, true);
+        ctx.fillStyle = "rgba(1, 4, 8, 0.95)";
+        ctx.fill();
+      }
 
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = "rgba(0, 255, 170, 0.6)";
-    ctx.stroke();
-    ctx.restore();
+      // Dish glass rim glow
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(0, 0, arenaRadius, 0, Math.PI * 2);
+      ctx.lineWidth = 14;
+      ctx.strokeStyle = "rgba(0, 240, 255, 0.2)";
+      ctx.shadowColor = "#00f0ff";
+      ctx.shadowBlur = this.glowScale * 25;
+      ctx.stroke();
 
-    // Subsurface grid pattern
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = "rgba(0, 255, 170, 0.6)";
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Subsurface grid: only the segments inside the viewport
     ctx.save();
     ctx.strokeStyle = "rgba(0, 240, 255, 0.035)";
     ctx.lineWidth = 1;
     const gridSize = 120;
-    const startX = Math.floor((-arenaRadius) / gridSize) * gridSize;
-    const endX = Math.ceil(arenaRadius / gridSize) * gridSize;
+    const gx0 = Math.max(Math.floor(vx0 / gridSize) * gridSize, -arenaRadius);
+    const gx1 = Math.min(Math.ceil(vx1 / gridSize) * gridSize, arenaRadius);
+    const gy0 = Math.max(Math.floor(vy0 / gridSize) * gridSize, -arenaRadius);
+    const gy1 = Math.min(Math.ceil(vy1 / gridSize) * gridSize, arenaRadius);
+    const cy0 = Math.max(vy0, -arenaRadius);
+    const cy1 = Math.min(vy1, arenaRadius);
+    const cx0 = Math.max(vx0, -arenaRadius);
+    const cx1 = Math.min(vx1, arenaRadius);
 
-    for (let x = startX; x <= endX; x += gridSize) {
+    for (let x = gx0; x <= gx1; x += gridSize) {
       ctx.beginPath();
-      ctx.moveTo(x, -arenaRadius);
-      ctx.lineTo(x, arenaRadius);
+      ctx.moveTo(x, cy0);
+      ctx.lineTo(x, cy1);
       ctx.stroke();
     }
-    for (let y = startX; y <= endX; y += gridSize) {
+    for (let y = gy0; y <= gy1; y += gridSize) {
       ctx.beginPath();
-      ctx.moveTo(-arenaRadius, y);
-      ctx.lineTo(arenaRadius, y);
+      ctx.moveTo(cx0, y);
+      ctx.lineTo(cx1, y);
       ctx.stroke();
     }
 
-    // Ambient floating bio-dust (skipped in lowest quality mode)
-    if (this.glowScale > 0) this.dustParticles.forEach(d => {
+    // Ambient floating bio-dust: simulate always, draw only on screen
+    this.dustParticles.forEach(d => {
       d.x += d.vx;
       d.y += d.vy;
       const dist = Math.hypot(d.x, d.y);
@@ -176,6 +200,8 @@ class GameRenderer {
         d.x *= -0.9;
         d.y *= -0.9;
       }
+      if (this.glowScale === 0) return;
+      if (d.x < vx0 || d.x > vx1 || d.y < vy0 || d.y > vy1) return;
       const alpha = d.alpha * (0.6 + 0.4 * Math.sin(time * 2 + d.phase));
       ctx.beginPath();
       ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
@@ -1004,11 +1030,47 @@ class GameRenderer {
       ctx.shadowColor = "#ff0077";
       ctx.shadowBlur = this.glowScale * 10;
       ctx.fill();
+    } else if (p.isEnemy) {
+      // Hostile bolt: bright comet with white-hot core and white rim so
+      // incoming fire stays readable against the red enemy swarm,
+      // even when glow is disabled in low quality mode
+      ctx.rotate(p.angle);
+      const pulse = 1 + Math.sin(p.life * 18) * 0.15;
+      const len = p.radius * 3.2 * pulse;
+      const w = p.radius * 1.6 * pulse;
+
+      // Fading tail trailing the direction of travel
+      ctx.beginPath();
+      ctx.moveTo(-len, 0);
+      ctx.lineTo(0, -w * 0.5);
+      ctx.lineTo(p.radius * 0.6, 0);
+      ctx.lineTo(0, w * 0.5);
+      ctx.closePath();
+      ctx.fillStyle = "rgba(255, 60, 0, 0.55)";
+      ctx.fill();
+
+      // Bright head
+      ctx.beginPath();
+      ctx.arc(p.radius * 0.35, 0, p.radius * 0.95, 0, Math.PI * 2);
+      ctx.fillStyle = "#ff3311";
+      ctx.shadowColor = "#ff2200";
+      ctx.shadowBlur = this.glowScale * 14;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // White rim + core (cheap, always visible)
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(p.radius * 0.35, 0, p.radius * 0.4, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
     } else {
       ctx.beginPath();
       ctx.arc(0, 0, p.radius, 0, Math.PI * 2);
-      ctx.fillStyle = p.isEnemy ? "#ff3366" : "#00ffcc";
-      ctx.shadowColor = p.isEnemy ? "#ff0055" : "#00ffaa";
+      ctx.fillStyle = "#00ffcc";
+      ctx.shadowColor = "#00ffaa";
       ctx.shadowBlur = this.glowScale * 10;
       ctx.fill();
     }

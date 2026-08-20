@@ -46,6 +46,8 @@ class InputManager {
     const btnSplit = document.getElementById("btn-split");
     const btnMerge = document.getElementById("btn-merge");
     const pointerRing = document.getElementById("touch-pointer-ring");
+    // Cheap state check instead of a DOM query per touch event
+    const isModalOpen = () => window.game && window.game.state !== "PLAYING";
 
     // Left Touch Action Buttons (Split & Merge)
     if (btnSplit) {
@@ -71,7 +73,7 @@ class InputManager {
     // Touch on Window: Prevent page drag & steer player smoothly
     window.addEventListener("touchstart", (e) => {
       // If modal is open, let user interact with modal natively
-      if (document.querySelector(".modal-backdrop:not(.hidden)")) {
+      if (isModalOpen()) {
         this.touchMove.active = false;
         if (pointerRing) pointerRing.style.display = "none";
         return;
@@ -101,7 +103,7 @@ class InputManager {
 
     window.addEventListener("touchmove", (e) => {
       // If modal is open, allow native scroll
-      if (document.querySelector(".modal-backdrop:not(.hidden)")) return;
+      if (isModalOpen()) return;
 
       if (!this.touchMove.active) return;
 
